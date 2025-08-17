@@ -23,6 +23,7 @@ class LootboxApp {
                     { name: 'Rare Item', odds: 0.3 },
                     { name: 'Epic Item', odds: 0.1 }
                 ],
+                chestImage: 'chests/OwnedChests/chest.png',
                 revealContents: true,
                 revealOdds: true,
                 maxTries: "unlimited",
@@ -56,6 +57,16 @@ class LootboxApp {
                 this.closeModal();
             }
         });
+
+        // Chest selection listeners
+        document.querySelectorAll('.chest-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                // Remove selected class from all options
+                document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
+                // Add selected class to clicked option
+                option.classList.add('selected');
+            });
+        });
     }
 
     renderLootboxes() {
@@ -71,9 +82,11 @@ class LootboxApp {
         grid.style.display = 'grid';
         emptyState.classList.add('hidden');
         
-        grid.innerHTML = this.lootboxes.map((lootbox, index) => `
+        grid.innerHTML = this.lootboxes.map((lootbox, index) => {
+            const chestImage = lootbox.chestImage || 'chests/OwnedChests/chest.png';
+            return `
             <div class="lootbox-card" onclick="app.openLootbox(${index})">
-                <div class="lootbox-preview"></div>
+                <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
                 <div class="lootbox-info">
                     <h3>${lootbox.name}</h3>
                     <div class="lootbox-stats">
@@ -87,7 +100,8 @@ class LootboxApp {
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     openLootbox(index) {
@@ -132,6 +146,10 @@ class LootboxApp {
         } else {
             circle.onclick = () => this.spinLootbox();
         }
+        
+        // Update chest image
+        const chestImage = this.currentLootbox.chestImage || 'chests/OwnedChests/chest.png';
+        circle.style.backgroundImage = `url('${chestImage}')`;
         
         // Render items if content should be revealed
         const itemsContainer = document.getElementById('lootboxItems');
@@ -265,6 +283,10 @@ class LootboxApp {
         document.getElementById('itemsList').innerHTML = '';
         this.addItemRow('Default Item', 1.0);
         this.updateTotalOdds();
+        
+        // Reset chest selection to default
+        document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
+        document.querySelector('.chest-option[data-image="chests/OwnedChests/chest.png"]').classList.add('selected');
     }
 
     editLootbox(index) {
@@ -287,6 +309,17 @@ class LootboxApp {
             this.addItemRow(item.name, item.odds);
         });
         this.updateTotalOdds();
+        
+        // Set chest selection
+        document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
+        const chestImage = lootbox.chestImage || 'chests/OwnedChests/chest.png';
+        const selectedOption = document.querySelector(`.chest-option[data-image="${chestImage}"]`);
+        if (selectedOption) {
+            selectedOption.classList.add('selected');
+        } else {
+            // Fallback to default if saved image doesn't exist
+            document.querySelector('.chest-option[data-image="chests/OwnedChests/chest.png"]').classList.add('selected');
+        }
     }
 
     showEditModal() {
@@ -366,9 +399,14 @@ class LootboxApp {
             return;
         }
 
+        // Get selected chest image
+        const selectedChest = document.querySelector('.chest-option.selected');
+        const chestImage = selectedChest ? selectedChest.dataset.image : 'chests/OwnedChests/chest.png';
+
         const lootbox = {
             name,
             items,
+            chestImage,
             revealContents: document.getElementById('revealContents').checked,
             revealOdds: document.getElementById('revealOdds').checked,
             maxTries: document.getElementById('unlimitedTries').checked ? "unlimited" : parseInt(document.getElementById('maxTries').value),
