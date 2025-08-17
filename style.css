@@ -104,38 +104,23 @@ body {
     width: 120px;
     height: 120px;
     margin: 0 auto 15px;
-    border-radius: 50%;
-    background: conic-gradient(
-        from 0deg,
-        #ff6b6b 0deg 72deg,
-        #4ecdc4 72deg 144deg,
-        #45b7d1 144deg 216deg,
-        #f9ca24 216deg 288deg,
-        #6c5ce7 288deg 360deg
-    );
+    border-radius: 15px; /* Changed from 50% to make it square-ish */
+    background-image: url('chests/chest.png'); /* Replace with your image path */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .lootbox-preview::before {
-    content: '';
-    width: 80px;
-    height: 80px;
-    background: white;
-    border-radius: 50%;
-    position: absolute;
+    display: none; /* Hide the white circle */
 }
 
 .lootbox-preview::after {
-    content: 'OPEN';
-    font-weight: 700;
-    font-size: 12px;
-    color: #4c51bf;
-    z-index: 1;
-    position: relative;
+    display: none; /* Hide the "OPEN" text since the chest speaks for itself */
 }
 
 .lootbox-info h3 {
