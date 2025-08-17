@@ -104,8 +104,8 @@ body {
     width: 120px;
     height: 120px;
     margin: 0 auto 15px;
-    border-radius: 15px; /* Changed from 50% to make it square-ish */
-    background-image: url('chests/chest.png'); /* Replace with your image path */
+    border-radius: 15px;
+    background-image: url('chests/chest.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -116,11 +116,11 @@ body {
 }
 
 .lootbox-preview::before {
-    display: none; /* Hide the white circle */
+    display: none;
 }
 
 .lootbox-preview::after {
-    display: none; /* Hide the "OPEN" text since the chest speaks for itself */
+    display: none;
 }
 
 .lootbox-info h3 {
@@ -431,15 +431,11 @@ body {
     width: 200px;
     height: 200px;
     margin: 20px auto;
-    border-radius: 50%;
-    background: conic-gradient(
-        from 0deg,
-        #ff6b6b 0deg 72deg,
-        #4ecdc4 72deg 144deg,
-        #45b7d1 144deg 216deg,
-        #f9ca24 216deg 288deg,
-        #6c5ce7 288deg 360deg
-    );
+    border-radius: 15px;
+    background-image: url('chests/chest.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -454,22 +450,24 @@ body {
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* Remove any pseudo-elements that might cover the chest */
 .lootbox-circle::before {
-    content: '';
-    width: 150px;
-    height: 150px;
-    background: white;
-    border-radius: 50%;
-    position: absolute;
+    display: none;
 }
 
 .lootbox-circle::after {
-    content: 'OPEN';
-    font-weight: 700;
-    font-size: 18px;
-    color: #4c51bf;
-    z-index: 1;
-    position: relative;
+    display: none;
+}
+
+/* Ensure invisible button covers entire chest and is on top */
+#openButton {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
 }
 
 .tries-info {

@@ -113,20 +113,15 @@ class LootboxApp {
             triesInfo.textContent = `Tries remaining: ${this.currentLootbox.remainingTries}`;
         }
         
-        // Generate colors for lootbox circle based on items
+        // Set up click handler for the invisible button (or fallback to circle)
+        const openButton = document.getElementById('openButton');
         const circle = document.getElementById('lootboxCircle');
-        if (this.currentLootbox.items.length > 0) {
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8', '#fdcb6e', '#e84393'];
-            const gradientStops = this.currentLootbox.items.map((item, i) => {
-                const startAngle = (360 / this.currentLootbox.items.length) * i;
-                const endAngle = (360 / this.currentLootbox.items.length) * (i + 1);
-                return `${colors[i % colors.length]} ${startAngle}deg ${endAngle}deg`;
-            }).join(', ');
-            
-            circle.style.background = `conic-gradient(from 0deg, ${gradientStops})`;
-        }
         
-        circle.onclick = () => this.spinLootbox();
+        if (openButton) {
+            openButton.onclick = () => this.spinLootbox();
+        } else {
+            circle.onclick = () => this.spinLootbox();
+        }
         
         // Render items if content should be revealed
         const itemsContainer = document.getElementById('lootboxItems');
