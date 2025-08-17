@@ -4,6 +4,8 @@ class LootboxApp {
         this.currentLootbox = null;
         this.editingIndex = -1;
         this.sessionHistory = [];
+        this.isOnCooldown = false;
+        this.popupTimeout = null;
         
         this.initializeApp();
     }
@@ -95,11 +97,19 @@ class LootboxApp {
         // Clear session history when opening a new lootbox
         this.sessionHistory = [];
         
+        // Reset cooldown when switching lootboxes
+        this.isOnCooldown = false;
+        if (this.popupTimeout) {
+            clearTimeout(this.popupTimeout);
+            this.popupTimeout = null;
+        }
+        
         document.getElementById('listView').classList.add('hidden');
         document.getElementById('lootboxView').classList.remove('hidden');
         
         this.renderLootboxView();
         this.updateSessionDisplay(); // Initialize session display
+        this.updateLootboxInteractivity(); // Update interactivity state
     }
 
     renderLootboxView() {
@@ -138,6 +148,11 @@ class LootboxApp {
     }
 
     spinLootbox() {
+        // Check if on cooldown
+        if (this.isOnCooldown) {
+            return;
+        }
+
         // Check if can spin
         if (this.currentLootbox.maxTries !== "unlimited" && this.currentLootbox.remainingTries <= 0) {
             alert('No tries remaining!');
@@ -151,6 +166,10 @@ class LootboxApp {
                 return;
             }
         }
+
+        // Set cooldown
+        this.isOnCooldown = true;
+        this.updateLootboxInteractivity();
 
         // Roll for item
         const random = Math.random();
@@ -189,18 +208,44 @@ class LootboxApp {
         
         // Update view
         this.renderLootboxView();
+
+        // Set cooldown timer (1.5 seconds)
+        setTimeout(() => {
+            this.isOnCooldown = false;
+            this.updateLootboxInteractivity();
+        }, 1500);
     }
 
     showResult(itemName) {
         const popup = document.getElementById('resultPopup');
         const resultItem = document.getElementById('resultItem');
         
+        // Clear any existing popup timeout
+        if (this.popupTimeout) {
+            clearTimeout(this.popupTimeout);
+        }
+        
         resultItem.textContent = itemName;
         popup.classList.add('show');
         
-        setTimeout(() => {
+        // Set new timeout for 3 seconds
+        this.popupTimeout = setTimeout(() => {
             popup.classList.remove('show');
+            this.popupTimeout = null;
         }, 3000);
+    }
+
+    updateLootboxInteractivity() {
+        const circle = document.getElementById('lootboxCircle');
+        const openButton = document.getElementById('openButton');
+        
+        if (this.isOnCooldown) {
+            circle.classList.add('on-cooldown');
+            if (openButton) openButton.disabled = true;
+        } else {
+            circle.classList.remove('on-cooldown');
+            if (openButton) openButton.disabled = false;
+        }
     }
 
     createNewLootbox() {
@@ -385,6 +430,17 @@ class LootboxApp {
         // Clear session history when leaving lootbox view
         this.sessionHistory = [];
         this.updateSessionDisplay();
+        
+        // Reset cooldown and hide popup when leaving lootbox view
+        this.isOnCooldown = false;
+        if (this.popupTimeout) {
+            clearTimeout(this.popupTimeout);
+            this.popupTimeout = null;
+        }
+        const popup = document.getElementById('resultPopup');
+        if (popup) {
+            popup.classList.remove('show');
+        }
         
         this.currentLootbox = null;
     }

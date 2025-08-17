@@ -698,3 +698,16 @@ body {
 #lootboxView:not(.hidden) ~ .bottom-nav {
     display: none;
 }
+
+/* Cooldown state for lootbox */
+.lootbox-circle.on-cooldown {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    filter: grayscale(50%);
+}
+
+.lootbox-circle.on-cooldown:hover {
+    transform: none !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
