@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lootbox Creator</title>
-    <link rel="stylesheet" href="lootbox_css.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="header">
@@ -45,6 +45,25 @@
             
             <div id="lootboxItems" class="lootbox-items">
                 <!-- Items will be populated here -->
+            </div>
+        </div>
+
+        <!-- Session History Section -->
+        <div id="sessionHistory" class="session-history">
+            <div id="sessionToggle" class="session-toggle" onclick="toggleSessionHistory()">
+                <h3>Session History</h3>
+                <button id="toggleButton" class="toggle-button">▶</button>
+            </div>
+            <div id="sessionContent" class="session-content collapsed">
+                <div id="sessionStats" class="session-stats">
+                    <div class="stat-item">Total Pulls: <span id="totalPulls">0</span></div>
+                </div>
+                <div id="historyList" class="history-list">
+                    <div class="no-history">No pulls yet this session</div>
+                </div>
+                <div class="history-controls">
+                    <button class="btn btn-secondary" onclick="app.clearHistory()">Clear History</button>
+                </div>
             </div>
         </div>
     </div>

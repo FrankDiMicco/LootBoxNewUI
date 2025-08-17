@@ -1,5 +1,3 @@
-console.log('Script loaded!'); // This should appear in console if working
-
 class LootboxApp {
     constructor() {
         this.lootboxes = this.loadLootboxes();
@@ -11,7 +9,6 @@ class LootboxApp {
     }
 
     initializeApp() {
-        console.log('App initializing...');
         this.renderLootboxes();
         this.attachEventListeners();
         
@@ -47,29 +44,21 @@ class LootboxApp {
         });
 
         // Modal checkbox listeners
-        const unlimitedTries = document.getElementById('unlimitedTries');
-        if (unlimitedTries) {
-            unlimitedTries.addEventListener('change', (e) => {
-                document.getElementById('maxTriesGroup').style.display = e.target.checked ? 'none' : 'block';
-            });
-        }
+        document.getElementById('unlimitedTries').addEventListener('change', (e) => {
+            document.getElementById('maxTriesGroup').style.display = e.target.checked ? 'none' : 'block';
+        });
 
         // Modal close on backdrop click
-        const editModal = document.getElementById('editModal');
-        if (editModal) {
-            editModal.addEventListener('click', (e) => {
-                if (e.target.id === 'editModal') {
-                    this.closeModal();
-                }
-            });
-        }
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editModal') {
+                this.closeModal();
+            }
+        });
     }
 
     renderLootboxes() {
         const grid = document.getElementById('lootboxGrid');
         const emptyState = document.getElementById('emptyState');
-        
-        if (!grid || !emptyState) return;
         
         if (this.lootboxes.length === 0) {
             grid.style.display = 'none';
@@ -90,9 +79,9 @@ class LootboxApp {
                         <span>Used: ${lootbox.lastUsed ? this.timeAgo(lootbox.lastUsed) : 'Never'}</span>
                     </div>
                     <div class="lootbox-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${index})">⚙</button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${index})">⚙️</button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${index})">🔗</button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">🗑</button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">🗑️</button>
                     </div>
                 </div>
             </div>
@@ -103,31 +92,30 @@ class LootboxApp {
         this.currentLootbox = this.lootboxes[index];
         this.currentLootboxIndex = index;
         
+        // Clear session history when opening a new lootbox
+        this.sessionHistory = [];
+        
         document.getElementById('listView').classList.add('hidden');
         document.getElementById('lootboxView').classList.remove('hidden');
         
         this.renderLootboxView();
+        this.updateSessionDisplay(); // Initialize session display
     }
 
     renderLootboxView() {
-        const titleEl = document.getElementById('lootboxTitle');
-        const triesInfo = document.getElementById('triesInfo');
-        const circle = document.getElementById('lootboxCircle');
-        const itemsContainer = document.getElementById('lootboxItems');
-        
-        if (titleEl) titleEl.textContent = this.currentLootbox.name;
+        document.getElementById('lootboxTitle').textContent = this.currentLootbox.name;
         
         // Update tries info
-        if (triesInfo) {
-            if (this.currentLootbox.maxTries === "unlimited") {
-                triesInfo.textContent = "Unlimited tries";
-            } else {
-                triesInfo.textContent = `Tries remaining: ${this.currentLootbox.remainingTries}`;
-            }
+        const triesInfo = document.getElementById('triesInfo');
+        if (this.currentLootbox.maxTries === "unlimited") {
+            triesInfo.textContent = "Unlimited tries";
+        } else {
+            triesInfo.textContent = `Tries remaining: ${this.currentLootbox.remainingTries}`;
         }
         
         // Generate colors for lootbox circle based on items
-        if (circle && this.currentLootbox.items.length > 0) {
+        const circle = document.getElementById('lootboxCircle');
+        if (this.currentLootbox.items.length > 0) {
             const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8', '#fdcb6e', '#e84393'];
             const gradientStops = this.currentLootbox.items.map((item, i) => {
                 const startAngle = (360 / this.currentLootbox.items.length) * i;
@@ -136,21 +124,21 @@ class LootboxApp {
             }).join(', ');
             
             circle.style.background = `conic-gradient(from 0deg, ${gradientStops})`;
-            circle.onclick = () => this.spinLootbox();
         }
         
+        circle.onclick = () => this.spinLootbox();
+        
         // Render items if content should be revealed
-        if (itemsContainer) {
-            if (this.currentLootbox.revealContents) {
-                itemsContainer.innerHTML = this.currentLootbox.items.map(item => `
-                    <div class="lootbox-item">
-                        <div class="item-name">${item.name}</div>
-                        ${this.currentLootbox.revealOdds ? `<div class="item-odds">${(item.odds * 100).toFixed(1)}%</div>` : ''}
-                    </div>
-                `).join('');
-            } else {
-                itemsContainer.innerHTML = '';
-            }
+        const itemsContainer = document.getElementById('lootboxItems');
+        if (this.currentLootbox.revealContents) {
+            itemsContainer.innerHTML = this.currentLootbox.items.map(item => `
+                <div class="lootbox-item">
+                    <div class="item-name">${item.name}</div>
+                    ${this.currentLootbox.revealOdds ? `<div class="item-odds">${(item.odds * 100).toFixed(1)}%</div>` : ''}
+                </div>
+            `).join('');
+        } else {
+            itemsContainer.innerHTML = '';
         }
     }
 
@@ -194,6 +182,9 @@ class LootboxApp {
             this.currentLootbox.remainingTries--;
         }
 
+        // Add to session history
+        this.addToHistory(result);
+
         // Save changes
         this.lootboxes[this.currentLootboxIndex] = this.currentLootbox;
         this.saveLootboxes();
@@ -209,14 +200,12 @@ class LootboxApp {
         const popup = document.getElementById('resultPopup');
         const resultItem = document.getElementById('resultItem');
         
-        if (popup && resultItem) {
-            resultItem.textContent = itemName;
-            popup.classList.add('show');
-            
-            setTimeout(() => {
-                popup.classList.remove('show');
-            }, 3000);
-        }
+        resultItem.textContent = itemName;
+        popup.classList.add('show');
+        
+        setTimeout(() => {
+            popup.classList.remove('show');
+        }, 3000);
     }
 
     createNewLootbox() {
@@ -224,27 +213,16 @@ class LootboxApp {
         this.showEditModal();
         
         // Reset form
-        const elements = {
-            lootboxName: document.getElementById('lootboxName'),
-            revealContents: document.getElementById('revealContents'),
-            revealOdds: document.getElementById('revealOdds'),
-            unlimitedTries: document.getElementById('unlimitedTries'),
-            maxTriesGroup: document.getElementById('maxTriesGroup'),
-            maxTries: document.getElementById('maxTries'),
-            modalTitle: document.getElementById('modalTitle'),
-            itemsList: document.getElementById('itemsList')
-        };
-        
-        if (elements.lootboxName) elements.lootboxName.value = '';
-        if (elements.revealContents) elements.revealContents.checked = true;
-        if (elements.revealOdds) elements.revealOdds.checked = true;
-        if (elements.unlimitedTries) elements.unlimitedTries.checked = true;
-        if (elements.maxTriesGroup) elements.maxTriesGroup.style.display = 'none';
-        if (elements.maxTries) elements.maxTries.value = 10;
-        if (elements.modalTitle) elements.modalTitle.textContent = 'Create New Lootbox';
+        document.getElementById('lootboxName').value = '';
+        document.getElementById('revealContents').checked = true;
+        document.getElementById('revealOdds').checked = true;
+        document.getElementById('unlimitedTries').checked = true;
+        document.getElementById('maxTriesGroup').style.display = 'none';
+        document.getElementById('maxTries').value = 10;
+        document.getElementById('modalTitle').textContent = 'Create New Lootbox';
         
         // Clear items and add default
-        if (elements.itemsList) elements.itemsList.innerHTML = '';
+        document.getElementById('itemsList').innerHTML = '';
         this.addItemRow('Default Item', 1.0);
         this.updateTotalOdds();
     }
@@ -255,27 +233,16 @@ class LootboxApp {
         this.showEditModal();
         
         // Populate form
-        const elements = {
-            lootboxName: document.getElementById('lootboxName'),
-            revealContents: document.getElementById('revealContents'),
-            revealOdds: document.getElementById('revealOdds'),
-            unlimitedTries: document.getElementById('unlimitedTries'),
-            maxTriesGroup: document.getElementById('maxTriesGroup'),
-            maxTries: document.getElementById('maxTries'),
-            modalTitle: document.getElementById('modalTitle'),
-            itemsList: document.getElementById('itemsList')
-        };
-        
-        if (elements.lootboxName) elements.lootboxName.value = lootbox.name;
-        if (elements.revealContents) elements.revealContents.checked = lootbox.revealContents;
-        if (elements.revealOdds) elements.revealOdds.checked = lootbox.revealOdds;
-        if (elements.unlimitedTries) elements.unlimitedTries.checked = lootbox.maxTries === "unlimited";
-        if (elements.maxTriesGroup) elements.maxTriesGroup.style.display = lootbox.maxTries === "unlimited" ? 'none' : 'block';
-        if (elements.maxTries) elements.maxTries.value = lootbox.maxTries === "unlimited" ? 10 : lootbox.maxTries;
-        if (elements.modalTitle) elements.modalTitle.textContent = 'Edit Lootbox';
+        document.getElementById('lootboxName').value = lootbox.name;
+        document.getElementById('revealContents').checked = lootbox.revealContents;
+        document.getElementById('revealOdds').checked = lootbox.revealOdds;
+        document.getElementById('unlimitedTries').checked = lootbox.maxTries === "unlimited";
+        document.getElementById('maxTriesGroup').style.display = lootbox.maxTries === "unlimited" ? 'none' : 'block';
+        document.getElementById('maxTries').value = lootbox.maxTries === "unlimited" ? 10 : lootbox.maxTries;
+        document.getElementById('modalTitle').textContent = 'Edit Lootbox';
         
         // Populate items
-        if (elements.itemsList) elements.itemsList.innerHTML = '';
+        document.getElementById('itemsList').innerHTML = '';
         lootbox.items.forEach(item => {
             this.addItemRow(item.name, item.odds);
         });
@@ -283,25 +250,17 @@ class LootboxApp {
     }
 
     showEditModal() {
-        const modal = document.getElementById('editModal');
-        if (modal) {
-            modal.classList.add('show');
-            document.body.style.overflow = 'hidden';
-        }
+        document.getElementById('editModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
 
     closeModal() {
-        const modal = document.getElementById('editModal');
-        if (modal) {
-            modal.classList.remove('show');
-            document.body.style.overflow = '';
-        }
+        document.getElementById('editModal').classList.remove('show');
+        document.body.style.overflow = '';
     }
 
     addItemRow(name = '', odds = 0) {
         const itemsList = document.getElementById('itemsList');
-        if (!itemsList) return;
-        
         const itemRow = document.createElement('div');
         itemRow.className = 'item-row';
         itemRow.innerHTML = `
@@ -312,9 +271,7 @@ class LootboxApp {
         
         // Add event listeners for real-time odds calculation
         const oddsInput = itemRow.querySelector('.item-odds-input');
-        if (oddsInput) {
-            oddsInput.addEventListener('input', () => this.updateTotalOdds());
-        }
+        oddsInput.addEventListener('input', () => this.updateTotalOdds());
         
         itemsList.appendChild(itemRow);
         this.updateTotalOdds();
@@ -331,23 +288,18 @@ class LootboxApp {
         });
         
         const totalElement = document.getElementById('totalOdds');
-        if (totalElement) {
-            totalElement.textContent = total.toFixed(3);
-            
-            // Color coding
-            if (Math.abs(total - 1.0) > 0.001) {
-                totalElement.style.color = '#ef4444';
-            } else {
-                totalElement.style.color = '#10b981';
-            }
+        totalElement.textContent = total.toFixed(3);
+        
+        // Color coding
+        if (Math.abs(total - 1.0) > 0.001) {
+            totalElement.style.color = '#ef4444';
+        } else {
+            totalElement.style.color = '#10b981';
         }
     }
 
     saveLootbox() {
-        const nameInput = document.getElementById('lootboxName');
-        if (!nameInput) return;
-        
-        const name = nameInput.value.trim();
+        const name = document.getElementById('lootboxName').value.trim();
         if (!name) {
             alert('Please enter a lootbox name');
             return;
@@ -422,8 +374,6 @@ class LootboxApp {
         } else {
             navigator.clipboard.writeText(url).then(() => {
                 alert('Share link copied to clipboard!');
-            }).catch(() => {
-                alert('Share URL: ' + url);
             });
         }
     }
@@ -434,11 +384,12 @@ class LootboxApp {
     }
 
     showListView() {
-        const listView = document.getElementById('listView');
-        const lootboxView = document.getElementById('lootboxView');
+        document.getElementById('lootboxView').classList.add('hidden');
+        document.getElementById('listView').classList.remove('hidden');
         
-        if (listView) listView.classList.remove('hidden');
-        if (lootboxView) lootboxView.classList.add('hidden');
+        // Clear session history when leaving lootbox view
+        this.sessionHistory = [];
+        this.updateSessionDisplay();
         
         this.currentLootbox = null;
     }
@@ -446,6 +397,73 @@ class LootboxApp {
     showMenu() {
         // Implement menu functionality here
         alert('Menu clicked - implement features like export, import, settings, etc.');
+    }
+
+    addToHistory(itemName) {
+        const historyEntry = {
+            item: itemName,
+            timestamp: new Date(),
+            lootboxName: this.currentLootbox.name
+        };
+        
+        this.sessionHistory.unshift(historyEntry); // Add to beginning
+        this.updateSessionDisplay();
+    }
+
+    updateSessionDisplay() {
+        const historyList = document.getElementById('historyList');
+        const totalPulls = document.getElementById('totalPulls');
+        const sessionStats = document.getElementById('sessionStats');
+        
+        if (!historyList || !totalPulls || !sessionStats) return;
+        
+        // Update total pulls
+        totalPulls.textContent = this.sessionHistory.length;
+        
+        // Generate item counts for stats
+        const itemCounts = {};
+        this.sessionHistory.forEach(entry => {
+            itemCounts[entry.item] = (itemCounts[entry.item] || 0) + 1;
+        });
+        
+        // Update stats section
+        sessionStats.innerHTML = `
+            <div class="stat-item">Total Pulls: <span id="totalPulls">${this.sessionHistory.length}</span></div>
+        `;
+        
+        // Add item counts
+        Object.entries(itemCounts)
+            .sort(([,a], [,b]) => b - a) // Sort by count descending
+            .forEach(([item, count]) => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                statItem.innerHTML = `${item}: <span>${count}</span>`;
+                sessionStats.appendChild(statItem);
+            });
+        
+        // Update history list
+        historyList.innerHTML = '';
+        
+        if (this.sessionHistory.length === 0) {
+            historyList.innerHTML = '<div class="no-history">No pulls yet this session</div>';
+            return;
+        }
+        
+        // Add history items
+        this.sessionHistory.forEach(entry => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.innerHTML = `
+                <span class="history-item-name">You got: ${entry.item}</span>
+                <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+            `;
+            historyList.appendChild(historyItem);
+        });
+    }
+
+    clearHistory() {
+        this.sessionHistory = [];
+        this.updateSessionDisplay();
     }
 
     timeAgo(dateString) {
@@ -481,44 +499,69 @@ class LootboxApp {
 
 // Global functions for onclick handlers
 function showListView() {
-    if (window.app) app.showListView();
+    app.showListView();
 }
 
 function showMenu() {
-    if (window.app) app.showMenu();
+    app.showMenu();
 }
 
 function createNewLootbox() {
-    if (window.app) app.createNewLootbox();
+    app.createNewLootbox();
 }
 
 function closeModal() {
-    if (window.app) app.closeModal();
+    app.closeModal();
 }
 
 function addItemRow() {
-    if (window.app) app.addItemRow();
+    app.addItemRow();
 }
 
 function saveLootbox() {
-    if (window.app) app.saveLootbox();
+    app.saveLootbox();
 }
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing app...');
-    window.app = new LootboxApp();
-});
+// FIXED: Better toggle function with smooth animation
+function toggleSessionHistory() {
+    const content = document.getElementById('sessionContent');
+    const btn = document.getElementById('toggleButton');
+    
+    if (content && btn) {
+        const isCollapsed = content.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // Expanding
+            content.classList.remove('collapsed');
+            btn.textContent = '▼';
+            btn.style.transform = 'rotate(0deg)';
+        } else {
+            // Collapsing
+            content.classList.add('collapsed');
+            btn.textContent = '▶';
+            btn.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
+function clearHistory() {
+    if (window.app) {
+        app.clearHistory();
+    }
+}
+
+// Initialize app
+const app = new LootboxApp();
 
 // Handle shared lootboxes
 const urlParams = new URLSearchParams(window.location.search);
 const sharedData = urlParams.get('share');
-if (sharedData && window.app) {
+if (sharedData) {
     try {
         const lootbox = JSON.parse(decodeURIComponent(sharedData));
-        window.app.lootboxes.push(lootbox);
-        window.app.saveLootboxes();
-        window.app.renderLootboxes();
+        app.lootboxes.push(lootbox);
+        app.saveLootboxes();
+        app.renderLootboxes();
         alert(`Imported: ${lootbox.name}`);
     } catch (error) {
         console.error('Error importing shared lootbox:', error);
