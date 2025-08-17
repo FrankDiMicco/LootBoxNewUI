@@ -693,3 +693,8 @@ body {
     font-size: 16px;
     margin-bottom: 20px;
 }
+
+/* Hide bottom navigation when lootbox view is active */
+#lootboxView:not(.hidden) ~ .bottom-nav {
+    display: none;
+}
