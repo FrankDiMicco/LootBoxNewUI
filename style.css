@@ -161,6 +161,18 @@ body {
     border-color: #cbd5e0;
 }
 
+.action-icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.action-btn:hover .action-icon {
+    opacity: 1;
+}
+
 .bottom-nav {
     position: fixed;
     bottom: 0;

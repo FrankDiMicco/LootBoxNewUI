@@ -203,9 +203,15 @@ class LootboxApp {
                         <span>Used: ${lootbox.lastUsed ? this.timeAgo(lootbox.lastUsed) : 'Never'}</span>
                     </div>
                     <div class="lootbox-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${index})">⚙️</button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${index})">🔗</button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">🗑️</button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${index})">
+                            <img src="assets/graphics/settings_cog.png" alt="Edit" class="action-icon">
+                        </button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${index})">
+                            <img src="assets/graphics/share.png" alt="Share" class="action-icon">
+                        </button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">
+                            <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
+                        </button>
                     </div>
                 </div>
             </div>
