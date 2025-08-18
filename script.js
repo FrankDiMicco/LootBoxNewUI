@@ -30,7 +30,8 @@ class LootboxApp {
                 maxTries: "unlimited",
                 remainingTries: "unlimited",
                 spins: 0,
-                lastUsed: new Date().toISOString()
+                lastUsed: new Date().toISOString(),
+                favorite: false
             });
             this.saveLootboxes();
             this.renderLootboxes();
@@ -193,6 +194,7 @@ class LootboxApp {
         
         grid.innerHTML = this.lootboxes.map((lootbox, index) => {
             const chestImage = lootbox.chestImage || 'chests/chest.png';
+            const favoriteIcon = lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png';
             return `
             <div class="lootbox-card" onclick="app.openLootbox(${index})">
                 <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
@@ -210,7 +212,7 @@ class LootboxApp {
                             <img src="assets/graphics/share.png" alt="Share" class="action-icon">
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${index})">
-                            <img src="assets/graphics/favorite_star.png" alt="Favorite" class="action-icon">
+                            <img src="${favoriteIcon}" alt="Favorite" class="action-icon">
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">
                             <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
@@ -549,7 +551,8 @@ class LootboxApp {
             maxTries: document.getElementById('unlimitedTries').checked ? "unlimited" : parseInt(document.getElementById('maxTries').value),
             remainingTries: document.getElementById('unlimitedTries').checked ? "unlimited" : parseInt(document.getElementById('maxTries').value),
             spins: 0,
-            lastUsed: null
+            lastUsed: null,
+            favorite: false
         };
 
         if (this.editingIndex === -1) {
@@ -560,6 +563,7 @@ class LootboxApp {
             const existing = this.lootboxes[this.editingIndex];
             lootbox.spins = existing.spins;
             lootbox.lastUsed = existing.lastUsed;
+            lootbox.favorite = existing.favorite || false;
             this.lootboxes[this.editingIndex] = lootbox;
         }
 
@@ -594,8 +598,9 @@ class LootboxApp {
     }
 
     favoriteLootbox(index) {
-        // Placeholder function - functionality to be implemented later
-        console.log(`Favorite lootbox ${index} clicked`);
+        this.lootboxes[index].favorite = !this.lootboxes[index].favorite;
+        this.saveLootboxes();
+        this.renderLootboxes();
     }
 
     filterLootboxes(filter) {
