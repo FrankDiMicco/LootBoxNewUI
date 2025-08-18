@@ -209,6 +209,9 @@ class LootboxApp {
                         <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${index})">
                             <img src="assets/graphics/share.png" alt="Share" class="action-icon">
                         </button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${index})">
+                            <img src="assets/graphics/favorite_star.png" alt="Favorite" class="action-icon">
+                        </button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">
                             <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
                         </button>
@@ -588,6 +591,11 @@ class LootboxApp {
                 alert('Share link copied to clipboard!');
             });
         }
+    }
+
+    favoriteLootbox(index) {
+        // Placeholder function - functionality to be implemented later
+        console.log(`Favorite lootbox ${index} clicked`);
     }
 
     filterLootboxes(filter) {
