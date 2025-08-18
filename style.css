@@ -712,12 +712,37 @@ body {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-/* Chest Selection Styles */
+/* Chest Selection Styles - Horizontal Scroll */
 .chest-selection {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    display: flex;
     gap: 15px;
     margin-top: 10px;
+    padding: 10px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #f1f5f9;
+}
+
+/* Custom scrollbar for webkit browsers */
+.chest-selection::-webkit-scrollbar {
+    height: 8px;
+}
+
+.chest-selection::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.chest-selection::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 4px;
+}
+
+.chest-selection::-webkit-scrollbar-thumb:hover {
+    background: #5a67d8;
 }
 
 .chest-option {
@@ -730,6 +755,10 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     background: #f8fafc;
+    flex-shrink: 0;
+    min-width: 120px;
+    scroll-snap-align: start;
+    user-select: none;
 }
 
 .chest-option:hover {
@@ -757,4 +786,45 @@ body {
     font-weight: 500;
     color: #64748b;
     text-align: center;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+    .chest-selection {
+        padding: 5px;
+        gap: 10px;
+        /* Hide scrollbar on mobile */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .chest-selection::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .chest-option {
+        min-width: 100px;
+        padding: 12px;
+    }
+    
+    .chest-option img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .chest-option span {
+        font-size: 11px;
+    }
+}
+
+/* Desktop improvements */
+@media (min-width: 769px) {
+    .chest-selection {
+        /* Show scrollbar on desktop for better UX */
+        scrollbar-width: thin;
+    }
+    
+    .chest-selection::-webkit-scrollbar {
+        display: block;
+    }
 }

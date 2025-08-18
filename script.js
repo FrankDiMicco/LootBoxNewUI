@@ -111,6 +111,64 @@ class LootboxApp {
             
             chestSelection.appendChild(chestOption);
         });
+        
+        // Add scroll interaction handlers
+        this.addChestSelectionScrollHandlers(chestSelection);
+    }
+
+    addChestSelectionScrollHandlers(container) {
+        // Mouse wheel horizontal scrolling
+        container.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                // Already horizontal scroll, let it through
+                return;
+            }
+            // Convert vertical scroll to horizontal
+            e.preventDefault();
+            container.scrollLeft += e.deltaY;
+        });
+
+        // Mouse drag scrolling
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        container.addEventListener('mousedown', (e) => {
+            // Don't start drag on chest option click
+            if (e.target.closest('.chest-option')) {
+                return;
+            }
+            isDown = true;
+            container.style.cursor = 'grabbing';
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+            e.preventDefault();
+            // Prevent text selection during drag
+            document.body.style.userSelect = 'none';
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll speed multiplier
+            container.scrollLeft = scrollLeft - walk;
+        });
+
+        // Set initial cursor
+        container.style.cursor = 'grab';
     }
 
     updateChestPreview(chestPath) {
