@@ -6,13 +6,12 @@ class LootboxApp {
         this.sessionHistory = [];
         this.isOnCooldown = false;
         this.popupTimeout = null;
-        this.availableChests = [];
+        this.selectedChestPath = null;
         
         this.initializeApp();
     }
 
     async initializeApp() {
-        await this.loadAvailableChests();
         this.renderLootboxes();
         this.attachEventListeners();
         
@@ -25,7 +24,7 @@ class LootboxApp {
                     { name: 'Rare Item', odds: 0.3 },
                     { name: 'Epic Item', odds: 0.1 }
                 ],
-                chestImage: 'chests/OwnedChests/chest.png',
+                chestImage: 'chests/chest.png',
                 revealContents: true,
                 revealOdds: true,
                 maxTries: "unlimited",
@@ -63,18 +62,39 @@ class LootboxApp {
         // Note: Chest selection listeners are now handled in populateChestSelection()
     }
 
-    populateChestSelection() {
+    async loadChestManifest() {
+        try {
+            const response = await fetch('chests/OwnedChests/manifest.json', { 
+                cache: 'no-store' 
+            });
+            const manifest = await response.json();
+            return manifest.chests || [];
+        } catch (error) {
+            console.error('Failed to load chest manifest:', error);
+            // Fallback to default chest from main chests folder
+            return [{
+                file: '../chest.png',
+                name: 'Default Chest',
+                description: 'Classic treasure chest'
+            }];
+        }
+    }
+
+    async populateChestSelection() {
         const chestSelection = document.getElementById('chestSelection');
         chestSelection.innerHTML = '';
         
-        this.availableChests.forEach(chest => {
+        const chests = await this.loadChestManifest();
+        
+        chests.forEach(chest => {
+            const chestPath = `chests/OwnedChests/${chest.file}`;
             const chestOption = document.createElement('div');
             chestOption.className = 'chest-option';
-            chestOption.dataset.image = chest.path;
+            chestOption.dataset.image = chestPath;
             
             chestOption.innerHTML = `
-                <img src="${chest.path}" alt="${chest.displayName} Chest">
-                <span>${chest.displayName}</span>
+                <img src="${chestPath}" alt="${chest.name}">
+                <span>${chest.name}</span>
             `;
             
             // Add click handler
@@ -83,67 +103,21 @@ class LootboxApp {
                 document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
                 // Add selected class to clicked option
                 chestOption.classList.add('selected');
+                // Store selected path
+                this.selectedChestPath = chestPath;
+                // Update preview immediately
+                this.updateChestPreview(chestPath);
             });
             
             chestSelection.appendChild(chestOption);
         });
     }
 
-    async loadAvailableChests() {
-        // List of known chest images - add new chests to this array
-        const knownChests = [
-            'chest.png',
-            'metal.png', 
-            'skull_bone.png',
-            'wood_flower.png',
-            'kid_happy.png'
-        ];
-        
-        this.availableChests = [];
-        
-        // Try to load each known chest image
-        for (const chestFile of knownChests) {
-            try {
-                const imagePath = `chests/OwnedChests/${chestFile}`;
-                // Test if image loads successfully
-                await this.testImageLoad(imagePath);
-                
-                // Create chest option object
-                const chestName = chestFile.replace('.png', '').replace(/_/g, ' ');
-                const displayName = chestName.split(' ').map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
-                
-                this.availableChests.push({
-                    path: imagePath,
-                    filename: chestFile,
-                    displayName: displayName
-                });
-            } catch (error) {
-                // Image doesn't exist or failed to load, skip it
-                console.log(`Chest image ${chestFile} not found or failed to load`);
-            }
+    updateChestPreview(chestPath) {
+        const circle = document.getElementById('lootboxCircle');
+        if (circle) {
+            circle.style.backgroundImage = `url('${chestPath}')`;
         }
-        
-        // Ensure we have at least one chest (fallback)
-        if (this.availableChests.length === 0) {
-            this.availableChests.push({
-                path: 'chests/chest.png',
-                filename: 'chest.png',
-                displayName: 'Default'
-            });
-        }
-        
-        console.log('Available chests loaded:', this.availableChests);
-    }
-    
-    testImageLoad(src) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve();
-            img.onerror = () => reject();
-            img.src = src;
-        });
     }
 
     renderLootboxes() {
@@ -160,7 +134,7 @@ class LootboxApp {
         emptyState.classList.add('hidden');
         
         grid.innerHTML = this.lootboxes.map((lootbox, index) => {
-            const chestImage = lootbox.chestImage || 'chests/OwnedChests/chest.png';
+            const chestImage = lootbox.chestImage || 'chests/chest.png';
             return `
             <div class="lootbox-card" onclick="app.openLootbox(${index})">
                 <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
@@ -225,7 +199,7 @@ class LootboxApp {
         }
         
         // Update chest image
-        const chestImage = this.currentLootbox.chestImage || 'chests/OwnedChests/chest.png';
+        const chestImage = this.currentLootbox.chestImage || 'chests/chest.png';
         circle.style.backgroundImage = `url('${chestImage}')`;
         
         // Render items if content should be revealed
@@ -343,7 +317,7 @@ class LootboxApp {
         }
     }
 
-    createNewLootbox() {
+    async createNewLootbox() {
         this.editingIndex = -1;
         this.showEditModal();
         
@@ -361,16 +335,22 @@ class LootboxApp {
         this.addItemRow('Default Item', 1.0);
         this.updateTotalOdds();
         
-        // Populate and reset chest selection
-        this.populateChestSelection();
+        // Populate chest selection
+        await this.populateChestSelection();
+        
+        // Reset selection
+        this.selectedChestPath = null;
+        
         // Select first available chest as default
         const firstChestOption = document.querySelector('.chest-option');
         if (firstChestOption) {
             firstChestOption.classList.add('selected');
+            this.selectedChestPath = firstChestOption.dataset.image;
+            this.updateChestPreview(this.selectedChestPath);
         }
     }
 
-    editLootbox(index) {
+    async editLootbox(index) {
         this.editingIndex = index;
         const lootbox = this.lootboxes[index];
         this.showEditModal();
@@ -391,17 +371,24 @@ class LootboxApp {
         });
         this.updateTotalOdds();
         
-        // Populate chest selection and set current selection
-        this.populateChestSelection();
-        const chestImage = lootbox.chestImage || (this.availableChests[0]?.path || 'chests/OwnedChests/chest.png');
+        // Populate chest selection
+        await this.populateChestSelection();
+        
+        // Set current selection
+        const chestImage = lootbox.chestImage || 'chests/chest.png';
+        this.selectedChestPath = chestImage;
+        
         const selectedOption = document.querySelector(`.chest-option[data-image="${chestImage}"]`);
         if (selectedOption) {
             selectedOption.classList.add('selected');
+            this.updateChestPreview(chestImage);
         } else {
             // Fallback to first available chest if saved image doesn't exist
             const firstChestOption = document.querySelector('.chest-option');
             if (firstChestOption) {
                 firstChestOption.classList.add('selected');
+                this.selectedChestPath = firstChestOption.dataset.image;
+                this.updateChestPreview(this.selectedChestPath);
             }
         }
     }
@@ -484,8 +471,7 @@ class LootboxApp {
         }
 
         // Get selected chest image
-        const selectedChest = document.querySelector('.chest-option.selected');
-        const chestImage = selectedChest ? selectedChest.dataset.image : 'chests/OwnedChests/chest.png';
+        const chestImage = this.selectedChestPath || 'chests/chest.png';
 
         const lootbox = {
             name,

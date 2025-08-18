@@ -1,0 +1,35 @@
+{
+  "chests": [
+    {
+      "file": "chest.png",
+      "name": "Default Chest",
+      "description": "Classic treasure chest"
+    },
+    {
+      "file": "metal.png",
+      "name": "Metal Chest",
+      "description": "Sturdy metal chest"
+    },
+    {
+      "file": "skull_bone.png",
+      "name": "Skull Chest",
+      "description": "Spooky bone chest"
+    },
+    {
+      "file": "wood_flower.png",
+      "name": "Flower Chest",
+      "description": "Wooden chest with flowers"
+    },
+    {
+      "file": "kid_happy.png",
+      "name": "Happy Kid Chest",
+      "description": "Cheerful kid-themed chest"
+    },
+    {
+      "file": "fruit_wood.png",
+      "name": "Fruity Chest",
+      "description": "Chest with fruit"
+    }
+
+  ]
+}
