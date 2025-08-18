@@ -6,11 +6,13 @@ class LootboxApp {
         this.sessionHistory = [];
         this.isOnCooldown = false;
         this.popupTimeout = null;
+        this.availableChests = [];
         
         this.initializeApp();
     }
 
-    initializeApp() {
+    async initializeApp() {
+        await this.loadAvailableChests();
         this.renderLootboxes();
         this.attachEventListeners();
         
@@ -58,14 +60,89 @@ class LootboxApp {
             }
         });
 
-        // Chest selection listeners
-        document.querySelectorAll('.chest-option').forEach(option => {
-            option.addEventListener('click', (e) => {
+        // Note: Chest selection listeners are now handled in populateChestSelection()
+    }
+
+    populateChestSelection() {
+        const chestSelection = document.getElementById('chestSelection');
+        chestSelection.innerHTML = '';
+        
+        this.availableChests.forEach(chest => {
+            const chestOption = document.createElement('div');
+            chestOption.className = 'chest-option';
+            chestOption.dataset.image = chest.path;
+            
+            chestOption.innerHTML = `
+                <img src="${chest.path}" alt="${chest.displayName} Chest">
+                <span>${chest.displayName}</span>
+            `;
+            
+            // Add click handler
+            chestOption.addEventListener('click', () => {
                 // Remove selected class from all options
                 document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
                 // Add selected class to clicked option
-                option.classList.add('selected');
+                chestOption.classList.add('selected');
             });
+            
+            chestSelection.appendChild(chestOption);
+        });
+    }
+
+    async loadAvailableChests() {
+        // List of known chest images - add new chests to this array
+        const knownChests = [
+            'chest.png',
+            'metal.png', 
+            'skull_bone.png',
+            'wood_flower.png',
+            'kid_happy.png'
+        ];
+        
+        this.availableChests = [];
+        
+        // Try to load each known chest image
+        for (const chestFile of knownChests) {
+            try {
+                const imagePath = `chests/OwnedChests/${chestFile}`;
+                // Test if image loads successfully
+                await this.testImageLoad(imagePath);
+                
+                // Create chest option object
+                const chestName = chestFile.replace('.png', '').replace(/_/g, ' ');
+                const displayName = chestName.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+                
+                this.availableChests.push({
+                    path: imagePath,
+                    filename: chestFile,
+                    displayName: displayName
+                });
+            } catch (error) {
+                // Image doesn't exist or failed to load, skip it
+                console.log(`Chest image ${chestFile} not found or failed to load`);
+            }
+        }
+        
+        // Ensure we have at least one chest (fallback)
+        if (this.availableChests.length === 0) {
+            this.availableChests.push({
+                path: 'chests/chest.png',
+                filename: 'chest.png',
+                displayName: 'Default'
+            });
+        }
+        
+        console.log('Available chests loaded:', this.availableChests);
+    }
+    
+    testImageLoad(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+            img.src = src;
         });
     }
 
@@ -284,9 +361,13 @@ class LootboxApp {
         this.addItemRow('Default Item', 1.0);
         this.updateTotalOdds();
         
-        // Reset chest selection to default
-        document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
-        document.querySelector('.chest-option[data-image="chests/OwnedChests/chest.png"]').classList.add('selected');
+        // Populate and reset chest selection
+        this.populateChestSelection();
+        // Select first available chest as default
+        const firstChestOption = document.querySelector('.chest-option');
+        if (firstChestOption) {
+            firstChestOption.classList.add('selected');
+        }
     }
 
     editLootbox(index) {
@@ -310,15 +391,18 @@ class LootboxApp {
         });
         this.updateTotalOdds();
         
-        // Set chest selection
-        document.querySelectorAll('.chest-option').forEach(opt => opt.classList.remove('selected'));
-        const chestImage = lootbox.chestImage || 'chests/OwnedChests/chest.png';
+        // Populate chest selection and set current selection
+        this.populateChestSelection();
+        const chestImage = lootbox.chestImage || (this.availableChests[0]?.path || 'chests/OwnedChests/chest.png');
         const selectedOption = document.querySelector(`.chest-option[data-image="${chestImage}"]`);
         if (selectedOption) {
             selectedOption.classList.add('selected');
         } else {
-            // Fallback to default if saved image doesn't exist
-            document.querySelector('.chest-option[data-image="chests/OwnedChests/chest.png"]').classList.add('selected');
+            // Fallback to first available chest if saved image doesn't exist
+            const firstChestOption = document.querySelector('.chest-option');
+            if (firstChestOption) {
+                firstChestOption.classList.add('selected');
+            }
         }
     }
 
