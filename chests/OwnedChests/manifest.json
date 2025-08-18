@@ -29,6 +29,16 @@
       "file": "fruit_wood.png",
       "name": "Fruity Chest",
       "description": "Chest with fruit"
+    },
+    {
+      "file": "weapon_wood.png",
+      "name": "Weapon Chest",
+      "description": "Wooden chest with weapons"
+    },
+    {
+      "file": "orb_chest.png",
+      "name": "Orb Chest",
+      "description": "Chest with orbs"
     }
 
   ]
