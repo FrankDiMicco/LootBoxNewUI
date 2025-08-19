@@ -7,6 +7,7 @@ class LootboxApp {
         this.isOnCooldown = false;
         this.popupTimeout = null;
         this.selectedChestPath = null;
+        this.currentFilter = 'all';
         
         this.initializeApp();
     }
@@ -212,13 +213,24 @@ class LootboxApp {
         }));
         
         const sortedIndexedLootboxes = indexedLootboxes.sort((a, b) => {
-            // Handle null lastUsed values (put them at the end)
-            if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
-            if (!a.lootbox.lastUsed) return 1;
-            if (!b.lootbox.lastUsed) return -1;
-            
-            // Sort by lastUsed timestamp (most recent first)
-            return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+            // If filtering by favorites, prioritize favorites first
+            if (this.currentFilter === 'favorites') {
+                // First sort by favorite status (favorites first)
+                if (a.lootbox.favorite && !b.lootbox.favorite) return -1;
+                if (!a.lootbox.favorite && b.lootbox.favorite) return 1;
+                
+                // Then sort by lastUsed within each group
+                if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
+                if (!a.lootbox.lastUsed) return 1;
+                if (!b.lootbox.lastUsed) return -1;
+                return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+            } else {
+                // Default sorting: just by most recent usage
+                if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
+                if (!a.lootbox.lastUsed) return 1;
+                if (!b.lootbox.lastUsed) return -1;
+                return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+            }
         });
         
         grid.innerHTML = sortedIndexedLootboxes.map(({lootbox, originalIndex}) => {
@@ -633,7 +645,7 @@ class LootboxApp {
     }
 
     filterLootboxes(filter) {
-        // For now, just show all - you can implement filtering logic here
+        this.currentFilter = filter;
         this.renderLootboxes();
     }
 
