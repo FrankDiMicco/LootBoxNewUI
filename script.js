@@ -68,21 +68,34 @@ class LootboxApp {
             const response = await fetch('chests/OwnedChests/manifest.json', { 
                 cache: 'no-store' 
             });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const manifest = await response.json();
             return manifest.chests || [];
         } catch (error) {
             console.error('Failed to load chest manifest:', error);
-            // Fallback to default chest from main chests folder
-            return [{
-                file: '../chest.png',
-                name: 'Default Chest',
-                description: 'Classic treasure chest'
-            }];
+            // Fallback with hardcoded chest list based on the manifest.json file
+            return [
+                { file: 'chest.png', name: 'Default Chest', description: 'Classic treasure chest' },
+                { file: 'metal.png', name: 'Metal Chest', description: 'Sturdy metal chest' },
+                { file: 'skull_bone.png', name: 'Skull Chest', description: 'Spooky bone chest' },
+                { file: 'wood_flower.png', name: 'Flower Chest', description: 'Wooden chest with flowers' },
+                { file: 'kid_happy.png', name: 'Happy Kid Chest', description: 'Cheerful kid-themed chest' },
+                { file: 'fruit_wood.png', name: 'Fruity Chest', description: 'Chest with fruit' },
+                { file: 'weapon_wood.png', name: 'Weapon Chest', description: 'Wooden chest with weapons' },
+                { file: 'orb_chest.png', name: 'Orb Chest', description: 'Chest with orbs' }
+            ];
         }
     }
 
     async populateChestSelection() {
         const chestSelection = document.getElementById('chestSelection');
+        if (!chestSelection) {
+            console.error('Chest selection container not found');
+            return;
+        }
+        
         chestSelection.innerHTML = '';
         
         const chests = await this.loadChestManifest();
@@ -192,11 +205,27 @@ class LootboxApp {
         grid.style.display = 'grid';
         emptyState.classList.add('hidden');
         
-        grid.innerHTML = this.lootboxes.map((lootbox, index) => {
+        // Sort lootboxes by most recently used first, keeping track of original indices
+        const indexedLootboxes = this.lootboxes.map((lootbox, index) => ({
+            lootbox,
+            originalIndex: index
+        }));
+        
+        const sortedIndexedLootboxes = indexedLootboxes.sort((a, b) => {
+            // Handle null lastUsed values (put them at the end)
+            if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
+            if (!a.lootbox.lastUsed) return 1;
+            if (!b.lootbox.lastUsed) return -1;
+            
+            // Sort by lastUsed timestamp (most recent first)
+            return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+        });
+        
+        grid.innerHTML = sortedIndexedLootboxes.map(({lootbox, originalIndex}) => {
             const chestImage = lootbox.chestImage || 'chests/chest.png';
             const favoriteIcon = lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png';
             return `
-            <div class="lootbox-card" onclick="app.openLootbox(${index})">
+            <div class="lootbox-card" onclick="app.openLootbox(${originalIndex})">
                 <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
                 <div class="lootbox-info">
                     <h3>${lootbox.name}</h3>
@@ -205,16 +234,16 @@ class LootboxApp {
                         <span>Used: ${lootbox.lastUsed ? this.timeAgo(lootbox.lastUsed) : 'Never'}</span>
                     </div>
                     <div class="lootbox-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${index})">
+                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${originalIndex})">
                             <img src="assets/graphics/settings_cog.png" alt="Edit" class="action-icon">
                         </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${index})">
+                        <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${originalIndex})">
                             <img src="assets/graphics/share.png" alt="Share" class="action-icon">
                         </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${index})">
+                        <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${originalIndex})">
                             <img src="${favoriteIcon}" alt="Favorite" class="action-icon">
                         </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${index})">
+                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${originalIndex})">
                             <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
                         </button>
                     </div>
@@ -551,7 +580,7 @@ class LootboxApp {
             maxTries: document.getElementById('unlimitedTries').checked ? "unlimited" : parseInt(document.getElementById('maxTries').value),
             remainingTries: document.getElementById('unlimitedTries').checked ? "unlimited" : parseInt(document.getElementById('maxTries').value),
             spins: 0,
-            lastUsed: null,
+            lastUsed: new Date().toISOString(),
             favorite: false
         };
 
@@ -628,6 +657,9 @@ class LootboxApp {
         }
         
         this.currentLootbox = null;
+        
+        // Re-render lootboxes to update sorting after potential usage
+        this.renderLootboxes();
     }
 
     showMenu() {
