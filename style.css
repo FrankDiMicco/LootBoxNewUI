@@ -386,11 +386,15 @@ body {
 }
 
 .modal-footer {
-    padding: 25px;
+    padding: 12px 25px;
     border-top: 1px solid #e2e8f0;
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    z-index: 10;
 }
 
 .btn {
