@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Example 1: restrict lootboxes
+    // Your existing lootboxes rules
     match /lootboxes/{docId} {
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
@@ -10,9 +10,36 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid;
     }
 
-    // Example 2: smoke test collection
+    // NEW: Group boxes rules
+    match /group_boxes/{groupBoxId} {
+      // Anyone can read group boxes (for sharing)
+      allow read: if true;
+      
+      // Only creators can create/update/delete their group boxes
+      allow create, update, delete: if request.auth != null 
+                    && request.auth.uid == resource.data.createdBy;
+      
+      // Sub-collection: opens (anyone can read/create opens)
+      match /opens/{openId} {
+        allow read, create: if true;
+        allow update, delete: if false; // Opens are permanent
+      }
+      
+      // Sub-collection: user tries tracking
+      match /user_tries/{userId} {
+        allow read, write: if true; // Anyone can track their tries
+      }
+    }
+
+    // Your existing tests collection
     match /tests/{docId} {
       allow read, write: if request.auth != null;
+    }
+
+    // Your existing chests collection (if you have rules for it)
+    match /chests/{docId} {
+      allow read: if true;
+      allow write: if false; // Only admins can modify chests
     }
   }
 }

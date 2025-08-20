@@ -270,9 +270,33 @@ class LootboxApp {
         const grid = document.getElementById('lootboxGrid');
         const emptyState = document.getElementById('emptyState');
         
-        if (this.lootboxes.length === 0) {
+        // Filter lootboxes based on current filter
+        let filteredLootboxes = this.lootboxes;
+        if (this.currentFilter === 'favorites') {
+            filteredLootboxes = this.lootboxes.filter(lootbox => lootbox.favorite);
+        } else if (this.currentFilter === 'shared') {
+            // Since group box loading isn't built yet, always show empty for shared
+            filteredLootboxes = [];
+        }
+        
+        if (filteredLootboxes.length === 0) {
             grid.style.display = 'none';
             emptyState.classList.remove('hidden');
+            
+            // Update empty state text based on filter
+            const emptyTitle = emptyState.querySelector('h3');
+            const emptyText = emptyState.querySelector('p');
+            
+            if (this.currentFilter === 'shared') {
+                emptyTitle.textContent = 'No Shared Group Boxes Yet';
+                emptyText.textContent = 'Share a lootbox as a Group Box to get started!';
+            } else if (this.currentFilter === 'favorites') {
+                emptyTitle.textContent = 'No Favorite Lootboxes Yet';
+                emptyText.textContent = 'Mark lootboxes as favorites to see them here!';
+            } else {
+                emptyTitle.textContent = 'No Lootboxes Yet';
+                emptyText.textContent = 'Create your first lootbox to get started!';
+            }
             return;
         }
 
@@ -280,10 +304,14 @@ class LootboxApp {
         emptyState.classList.add('hidden');
         
         // Sort lootboxes by most recently used first, keeping track of original indices
-        const indexedLootboxes = this.lootboxes.map((lootbox, index) => ({
-            lootbox,
-            originalIndex: index
-        }));
+        const indexedLootboxes = filteredLootboxes.map((lootbox) => {
+            // Find original index in the full lootboxes array
+            const originalIndex = this.lootboxes.findIndex(lb => lb === lootbox);
+            return {
+                lootbox,
+                originalIndex: originalIndex
+            };
+        });
         
         const sortedIndexedLootboxes = indexedLootboxes.sort((a, b) => {
             // If filtering by favorites, prioritize favorites first
