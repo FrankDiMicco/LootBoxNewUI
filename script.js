@@ -585,6 +585,20 @@ class LootboxApp {
             totalElement.style.color = '#10b981';
         }
     }
+    
+    evenlyDistributeOdds() {
+        const rows = document.querySelectorAll('#itemsList .item-row');
+        if (rows.length === 0) return;
+        
+        const evenOdds = (1.0 / rows.length).toFixed(3);
+        
+        rows.forEach(row => {
+            const oddsInput = row.querySelector('.item-odds-input');
+            oddsInput.value = parseFloat(evenOdds);
+        });
+        
+        this.updateTotalOdds();
+    }
 
     async saveLootbox() {
         // Check if modal is open (indicates user action from Save button)
@@ -930,6 +944,10 @@ function addItemRow() {
 
 function saveLootbox() {
     app.saveLootbox();
+}
+
+function evenlyDistributeOdds() {
+    app.evenlyDistributeOdds();
 }
 
 function toggleSessionHistory() {
