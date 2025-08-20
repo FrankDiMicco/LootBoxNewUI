@@ -41,6 +41,9 @@ class LootboxApp {
                     // Load lootboxes from Firebase or localStorage
                     this.lootboxes = await this.loadLootboxes();
                     console.log(`Loaded ${this.lootboxes.length} lootboxes`);
+                    
+                    // Migrate old chest paths
+                    this.migrateChestPaths();
                 } catch (error) {
                     console.error('Error loading lootboxes:', error);
                     this.lootboxes = [];
@@ -57,6 +60,21 @@ class LootboxApp {
         });
     }
     
+    migrateChestPaths() {
+        let migrated = false;
+        this.lootboxes.forEach(lootbox => {
+            if (lootbox.chestImage && lootbox.chestImage.includes('chests/OwnedChests/')) {
+                lootbox.chestImage = lootbox.chestImage.replace('chests/OwnedChests/', 'chests/');
+                migrated = true;
+            }
+        });
+        
+        if (migrated) {
+            console.log('Migrated chest paths from OwnedChests to chests folder');
+            this.saveLootboxes(); // Save the migrated data
+        }
+    }
+
     async createDefaultLootbox() {
         const defaultLootbox = {
             name: 'Sample Lootbox',
@@ -105,13 +123,15 @@ class LootboxApp {
 
     async loadChestManifest() {
         try {
-            const response = await fetch('chests/OwnedChests/manifest.json', { 
+            console.log('Loading chest manifest from: chests/manifest.json');
+            const response = await fetch('chests/manifest.json', { 
                 cache: 'no-store' 
             });
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const manifest = await response.json();
+            console.log('Loaded chest manifest:', manifest);
             return manifest.chests || [];
         } catch (error) {
             console.error('Failed to load chest manifest:', error);
@@ -139,9 +159,11 @@ class LootboxApp {
         chestSelection.innerHTML = '';
         
         const chests = await this.loadChestManifest();
+        console.log('Populating chest selection with:', chests);
         
         chests.forEach(chest => {
-            const chestPath = `chests/OwnedChests/${chest.file}`;
+            const chestPath = `chests/${chest.file}`;
+            console.log('Adding chest with path:', chestPath);
             const chestOption = document.createElement('div');
             chestOption.className = 'chest-option';
             chestOption.dataset.image = chestPath;
@@ -268,7 +290,11 @@ class LootboxApp {
         });
         
         grid.innerHTML = sortedIndexedLootboxes.map(({lootbox, originalIndex}) => {
-            const chestImage = lootbox.chestImage || 'chests/chest.png';
+            // Migrate old chest paths to new location
+            let chestImage = lootbox.chestImage || 'chests/chest.png';
+            if (chestImage.includes('chests/OwnedChests/')) {
+                chestImage = chestImage.replace('chests/OwnedChests/', 'chests/');
+            }
             const favoriteIcon = lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png';
             return `
             <div class="lootbox-card" onclick="app.openLootbox(${originalIndex})">
@@ -342,8 +368,11 @@ class LootboxApp {
             circle.onclick = () => this.spinLootbox();
         }
         
-        // Update chest image
-        const chestImage = this.currentLootbox.chestImage || 'chests/chest.png';
+        // Update chest image (migrate old paths)
+        let chestImage = this.currentLootbox.chestImage || 'chests/chest.png';
+        if (chestImage.includes('chests/OwnedChests/')) {
+            chestImage = chestImage.replace('chests/OwnedChests/', 'chests/');
+        }
         circle.style.backgroundImage = `url('${chestImage}')`;
         
         // Render items if content should be revealed
