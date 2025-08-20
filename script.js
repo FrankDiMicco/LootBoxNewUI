@@ -122,8 +122,40 @@ class LootboxApp {
     }
 
     async loadChestManifest() {
+        // Try to load from Firestore first
+        if (this.isFirebaseReady && window.firebaseDb && window.firebaseFunctions) {
+            try {
+                const { collection, getDocs, orderBy, query } = window.firebaseFunctions;
+                
+                // Query the 'chests' collection, ordered by sortOrder
+                const chestsRef = collection(window.firebaseDb, 'chests');
+                const q = query(chestsRef, orderBy('sortOrder', 'asc'));
+                const querySnapshot = await getDocs(q);
+                
+                const chests = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Transform Firestore data to match existing structure
+                    chests.push({
+                        file: data.fileName,
+                        name: data.name,
+                        description: data.description,
+                        tier: data.tier,
+                        sortOrder: data.sortOrder
+                    });
+                });
+                
+                console.log(`Loaded ${chests.length} chests from Firestore`);
+                return chests;
+                
+            } catch (error) {
+                console.error('Failed to load chests from Firestore:', error);
+                // Fall through to fallback
+            }
+        }
+        
+        // Fallback: try manifest.json
         try {
-            console.log('Loading chest manifest from: chests/manifest.json');
             const response = await fetch('chests/manifest.json', { 
                 cache: 'no-store' 
             });
@@ -131,22 +163,24 @@ class LootboxApp {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const manifest = await response.json();
-            console.log('Loaded chest manifest:', manifest);
+            console.log('Loaded chest manifest from file');
             return manifest.chests || [];
-        } catch (error) {
-            console.error('Failed to load chest manifest:', error);
-            // Fallback with hardcoded chest list
-            return [
-                { file: 'chest.png', name: 'Default Chest', description: 'Classic treasure chest' },
-                { file: 'metal.png', name: 'Metal Chest', description: 'Sturdy metal chest' },
-                { file: 'skull_bone.png', name: 'Skull Chest', description: 'Spooky bone chest' },
-                { file: 'wood_flower.png', name: 'Flower Chest', description: 'Wooden chest with flowers' },
-                { file: 'kid_happy.png', name: 'Happy Kid Chest', description: 'Cheerful kid-themed chest' },
-                { file: 'fruit_wood.png', name: 'Fruity Chest', description: 'Chest with fruit' },
-                { file: 'weapon_wood.png', name: 'Weapon Chest', description: 'Wooden chest with weapons' },
-                { file: 'orb_chest.png', name: 'Orb Chest', description: 'Chest with orbs' }
-            ];
+        } catch (manifestError) {
+            console.error('Failed to load chest manifest from file:', manifestError);
         }
+        
+        // Final fallback: hardcoded chest list
+        console.log('Using hardcoded chest fallback');
+        return [
+            { file: 'chest.png', name: 'Default Chest', description: 'Classic treasure chest' },
+            { file: 'metal.png', name: 'Metal Chest', description: 'Sturdy metal chest' },
+            { file: 'skull_bone.png', name: 'Skull Chest', description: 'Spooky bone chest' },
+            { file: 'wood_flower.png', name: 'Flower Chest', description: 'Wooden chest with flowers' },
+            { file: 'kid_happy.png', name: 'Happy Kid Chest', description: 'Cheerful kid-themed chest' },
+            { file: 'fruit_wood.png', name: 'Fruity Chest', description: 'Chest with fruit' },
+            { file: 'weapon_wood.png', name: 'Weapon Chest', description: 'Wooden chest with weapons' },
+            { file: 'orb_chest.png', name: 'Orb Chest', description: 'Chest with orbs' }
+        ];
     }
 
     async populateChestSelection() {
@@ -159,11 +193,9 @@ class LootboxApp {
         chestSelection.innerHTML = '';
         
         const chests = await this.loadChestManifest();
-        console.log('Populating chest selection with:', chests);
         
         chests.forEach(chest => {
             const chestPath = `chests/${chest.file}`;
-            console.log('Adding chest with path:', chestPath);
             const chestOption = document.createElement('div');
             chestOption.className = 'chest-option';
             chestOption.dataset.image = chestPath;

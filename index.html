@@ -175,7 +175,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
         import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
-        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc, updateDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc, updateDoc, deleteDoc, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
 
         // Firebase configuration
         const firebaseConfig = {
@@ -205,7 +205,8 @@
             doc,
             setDoc,
             updateDoc,
-            deleteDoc
+            deleteDoc,
+            orderBy
         };
 
         // Sign in anonymously and perform smoke test
