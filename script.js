@@ -688,21 +688,12 @@ class LootboxApp {
         
         if (navigator.share) {
             navigator.share({
-                title: `${lootbox.name} - Lootbox Creator`,
-                text: `Check out this awesome "${lootbox.name}" lootbox I created! Try your luck and see what you get! 🎲`,
+                title: `${lootbox.name} - Lootbox`,
                 url: url
             });
         } else {
-            // Create nice formatted text for copying
-            const shareText = `Check out my "${lootbox.name}" lootbox! 🎁\n\nTry your luck: ${url}`;
-            
-            navigator.clipboard.writeText(shareText).then(() => {
-                alert('✨ Share message copied to clipboard!\n\nPaste it in your message to share with friends!');
-            }).catch(() => {
-                // Fallback - just copy the URL
-                navigator.clipboard.writeText(url).then(() => {
-                    alert('Share link copied to clipboard!');
-                });
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Share link copied to clipboard!');
             });
         }
     }
