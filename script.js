@@ -135,11 +135,11 @@ class LootboxApp {
                 const chests = [];
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    // Transform Firestore data to match existing structure
+                    // Transform Firestore data to match existing structure and strip extra quotes
                     chests.push({
-                        file: data.fileName,
-                        name: data.name,
-                        description: data.description,
+                        file: data.fileName.replace(/"/g, ''),
+                        name: data.name.replace(/"/g, ''),
+                        description: data.description.replace(/"/g, ''),
                         tier: data.tier,
                         sortOrder: data.sortOrder
                     });
@@ -178,9 +178,11 @@ class LootboxApp {
         chestSelection.innerHTML = '';
         
         const chests = await this.loadChestManifest();
+        console.log('Populating chest selection with:', chests);
         
         chests.forEach(chest => {
             const chestPath = `chests/${chest.file}`;
+            console.log('Creating chest option for:', chest.name, 'with path:', chestPath);
             const chestOption = document.createElement('div');
             chestOption.className = 'chest-option';
             chestOption.dataset.image = chestPath;
@@ -356,6 +358,9 @@ class LootboxApp {
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${originalIndex})">
                             <img src="assets/graphics/share.png" alt="Share" class="action-icon">
+                        </button>
+                        <button class="action-btn" onclick="event.stopPropagation(); app.toggleGroupBox(${originalIndex})">
+                            <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="action-icon">
                         </button>
                         <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${originalIndex})">
                             <img src="${favoriteIcon}" alt="Favorite" class="action-icon">
@@ -851,6 +856,10 @@ class LootboxApp {
         this.lootboxes[index].favorite = !this.lootboxes[index].favorite;
         await this.saveLootboxes();
         this.renderLootboxes();
+    }
+
+    toggleGroupBox(index) {
+        alert('Group box features coming soon!');
     }
 
     filterLootboxes(filter) {
