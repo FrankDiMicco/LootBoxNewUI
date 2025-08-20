@@ -1,6 +1,6 @@
 class LootboxApp {
     constructor() {
-        this.lootboxes = this.loadLootboxes();
+        this.lootboxes = [];
         this.currentLootbox = null;
         this.editingIndex = -1;
         this.sessionHistory = [];
@@ -8,6 +8,7 @@ class LootboxApp {
         this.popupTimeout = null;
         this.selectedChestPath = null;
         this.currentFilter = 'all';
+        this.isFirebaseReady = false;
         
         this.initializeApp();
     }
@@ -16,27 +17,67 @@ class LootboxApp {
         this.renderLootboxes();
         this.attachEventListeners();
         
-        // Add default lootbox if none exist
-        if (this.lootboxes.length === 0) {
-            this.lootboxes.push({
-                name: 'Sample Lootbox',
-                items: [
-                    { name: 'Common Item', odds: 0.6 },
-                    { name: 'Rare Item', odds: 0.3 },
-                    { name: 'Epic Item', odds: 0.1 }
-                ],
-                chestImage: 'chests/chest.png',
-                revealContents: true,
-                revealOdds: true,
-                maxTries: "unlimited",
-                remainingTries: "unlimited",
-                spins: 0,
-                lastUsed: new Date().toISOString(),
-                favorite: false
-            });
-            this.saveLootboxes();
-            this.renderLootboxes();
+        // Wait for Firebase auth to be ready, then load lootboxes
+        await this.waitForAuthAndLoad();
+    }
+    
+    async waitForAuthAndLoad() {
+        console.log('Waiting for Firebase auth...');
+        
+        // Wait for Firebase to be initialized
+        while (!window.firebaseAuth) {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
+        
+        // Wait for auth state to resolve (either signed in or failed)
+        return new Promise((resolve) => {
+            const unsubscribe = window.firebaseAuth.onAuthStateChanged(async (user) => {
+                console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+                unsubscribe(); // Stop listening after first state change
+                
+                this.isFirebaseReady = true;
+                
+                try {
+                    // Load lootboxes from Firebase or localStorage
+                    this.lootboxes = await this.loadLootboxes();
+                    console.log(`Loaded ${this.lootboxes.length} lootboxes`);
+                } catch (error) {
+                    console.error('Error loading lootboxes:', error);
+                    this.lootboxes = [];
+                }
+                
+                // Add default lootbox if none exist
+                if (this.lootboxes.length === 0) {
+                    await this.createDefaultLootbox();
+                }
+                
+                this.renderLootboxes();
+                resolve();
+            });
+        });
+    }
+    
+    async createDefaultLootbox() {
+        const defaultLootbox = {
+            name: 'Sample Lootbox',
+            items: [
+                { name: 'Common Item', odds: 0.6 },
+                { name: 'Rare Item', odds: 0.3 },
+                { name: 'Epic Item', odds: 0.1 }
+            ],
+            chestImage: 'chests/chest.png',
+            revealContents: true,
+            revealOdds: true,
+            maxTries: "unlimited",
+            remainingTries: "unlimited",
+            spins: 0,
+            lastUsed: new Date().toISOString(),
+            favorite: false
+        };
+        
+        this.lootboxes.push(defaultLootbox);
+        await this.saveLootboxes();
+        console.log('Created default lootbox');
     }
 
     attachEventListeners() {
@@ -60,8 +101,6 @@ class LootboxApp {
                 this.closeModal();
             }
         });
-
-        // Note: Chest selection listeners are now handled in populateChestSelection()
     }
 
     async loadChestManifest() {
@@ -76,7 +115,7 @@ class LootboxApp {
             return manifest.chests || [];
         } catch (error) {
             console.error('Failed to load chest manifest:', error);
-            // Fallback with hardcoded chest list based on the manifest.json file
+            // Fallback with hardcoded chest list
             return [
                 { file: 'chest.png', name: 'Default Chest', description: 'Classic treasure chest' },
                 { file: 'metal.png', name: 'Metal Chest', description: 'Sturdy metal chest' },
@@ -135,10 +174,8 @@ class LootboxApp {
         // Mouse wheel horizontal scrolling
         container.addEventListener('wheel', (e) => {
             if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-                // Already horizontal scroll, let it through
                 return;
             }
-            // Convert vertical scroll to horizontal
             e.preventDefault();
             container.scrollLeft += e.deltaY;
         });
@@ -149,7 +186,6 @@ class LootboxApp {
         let scrollLeft;
 
         container.addEventListener('mousedown', (e) => {
-            // Don't start drag on chest option click
             if (e.target.closest('.chest-option')) {
                 return;
             }
@@ -158,7 +194,6 @@ class LootboxApp {
             startX = e.pageX - container.offsetLeft;
             scrollLeft = container.scrollLeft;
             e.preventDefault();
-            // Prevent text selection during drag
             document.body.style.userSelect = 'none';
         });
 
@@ -178,11 +213,10 @@ class LootboxApp {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - container.offsetLeft;
-            const walk = (x - startX) * 2; // Scroll speed multiplier
+            const walk = (x - startX) * 2;
             container.scrollLeft = scrollLeft - walk;
         });
 
-        // Set initial cursor
         container.style.cursor = 'grab';
     }
 
@@ -283,8 +317,8 @@ class LootboxApp {
         document.getElementById('lootboxView').classList.remove('hidden');
         
         this.renderLootboxView();
-        this.updateSessionDisplay(); // Initialize session display
-        this.updateLootboxInteractivity(); // Update interactivity state
+        this.updateSessionDisplay();
+        this.updateLootboxInteractivity();
     }
 
     renderLootboxView() {
@@ -326,7 +360,7 @@ class LootboxApp {
         }
     }
 
-    spinLootbox() {
+    async spinLootbox() {
         // Check if on cooldown
         if (this.isOnCooldown) {
             return;
@@ -380,7 +414,7 @@ class LootboxApp {
 
         // Save changes
         this.lootboxes[this.currentLootboxIndex] = this.currentLootbox;
-        this.saveLootboxes();
+        await this.saveLootboxes();
 
         // Show result
         this.showResult(result);
@@ -552,10 +586,14 @@ class LootboxApp {
         }
     }
 
-    saveLootbox() {
+    async saveLootbox() {
+        // Check if modal is open (indicates user action from Save button)
+        const modal = document.getElementById('editModal');
+        const showAlerts = modal && modal.classList.contains('show');
+        
         const name = document.getElementById('lootboxName').value.trim();
         if (!name) {
-            alert('Please enter a lootbox name');
+            if (showAlerts) alert('Please enter a lootbox name');
             return;
         }
 
@@ -576,7 +614,7 @@ class LootboxApp {
         });
 
         if (items.length === 0) {
-            alert('Please add at least one item');
+            if (showAlerts) alert('Please add at least one item');
             return;
         }
 
@@ -605,20 +643,42 @@ class LootboxApp {
             lootbox.spins = existing.spins;
             lootbox.lastUsed = existing.lastUsed;
             lootbox.favorite = existing.favorite || false;
+            lootbox.id = existing.id; // Preserve Firebase ID if it exists
             this.lootboxes[this.editingIndex] = lootbox;
         }
 
-        this.saveLootboxes();
+        await this.saveLootboxes();
         this.renderLootboxes();
         this.closeModal();
     }
 
-    deleteLootbox(index) {
+    async deleteLootbox(index) {
         if (confirm('Are you sure you want to delete this lootbox?')) {
+            const lootbox = this.lootboxes[index];
+            
+            // Delete from Firebase if it has an ID
+            if (lootbox.id && this.isFirebaseReady) {
+                try {
+                    await this.deleteLootboxFromFirebase(lootbox.id);
+                    console.log('Deleted from Firebase:', lootbox.id);
+                } catch (error) {
+                    console.error('Error deleting from Firebase:', error);
+                }
+            }
+            
             this.lootboxes.splice(index, 1);
-            this.saveLootboxes();
+            await this.saveLootboxes();
             this.renderLootboxes();
         }
+    }
+
+    async deleteLootboxFromFirebase(id) {
+        if (!window.firebaseDb || !window.firebaseFunctions) {
+            throw new Error('Firebase not available');
+        }
+        
+        const { doc, deleteDoc } = window.firebaseFunctions;
+        await deleteDoc(doc(window.firebaseDb, 'lootboxes', id));
     }
 
     shareLootbox(index) {
@@ -638,9 +698,9 @@ class LootboxApp {
         }
     }
 
-    favoriteLootbox(index) {
+    async favoriteLootbox(index) {
         this.lootboxes[index].favorite = !this.lootboxes[index].favorite;
-        this.saveLootboxes();
+        await this.saveLootboxes();
         this.renderLootboxes();
     }
 
@@ -675,7 +735,6 @@ class LootboxApp {
     }
 
     showMenu() {
-        // Implement menu functionality here
         alert('Menu clicked - implement features like export, import, settings, etc.');
     }
 
@@ -686,7 +745,7 @@ class LootboxApp {
             lootboxName: this.currentLootbox.name
         };
         
-        this.sessionHistory.unshift(historyEntry); // Add to beginning
+        this.sessionHistory.unshift(historyEntry);
         this.updateSessionDisplay();
     }
 
@@ -757,19 +816,90 @@ class LootboxApp {
         return `${Math.floor(diffInSeconds / 86400)} days ago`;
     }
 
-    loadLootboxes() {
+    async loadLootboxes() {
+        // Try to load from Firebase first, fallback to localStorage
+        if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
+            try {
+                const currentUser = window.firebaseAuth.currentUser;
+                if (currentUser) {
+                    const { collection, query, where, getDocs } = window.firebaseFunctions;
+                    const q = query(
+                        collection(window.firebaseDb, 'lootboxes'),
+                        where('uid', '==', currentUser.uid)
+                    );
+                    const querySnapshot = await getDocs(q);
+                    const lootboxes = [];
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        // Remove the uid field for local use and add document id
+                        delete data.uid;
+                        lootboxes.push({ id: doc.id, ...data });
+                    });
+                    console.log(`Loaded ${lootboxes.length} lootboxes from Firebase`);
+                    
+                    // Also save to localStorage as backup
+                    localStorage.setItem('lootboxes', JSON.stringify(lootboxes));
+                    
+                    return lootboxes;
+                }
+            } catch (error) {
+                console.error('Error loading lootboxes from Firebase:', error);
+            }
+        }
+        
+        // Fallback to localStorage
         try {
             const saved = localStorage.getItem('lootboxes');
-            return saved ? JSON.parse(saved) : [];
+            const lootboxes = saved ? JSON.parse(saved) : [];
+            console.log(`Loaded ${lootboxes.length} lootboxes from localStorage`);
+            return lootboxes;
         } catch (error) {
-            console.error('Error loading lootboxes:', error);
+            console.error('Error loading lootboxes from localStorage:', error);
             return [];
         }
     }
 
-    saveLootboxes() {
+    async saveLootboxes() {
+        // Save to Firebase if available
+        if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
+            try {
+                const currentUser = window.firebaseAuth.currentUser;
+                if (currentUser) {
+                    const { collection, addDoc, doc, setDoc } = window.firebaseFunctions;
+                    
+                    // Save each lootbox individually
+                    for (let i = 0; i < this.lootboxes.length; i++) {
+                        const lootbox = this.lootboxes[i];
+                        const lootboxWithUid = { ...lootbox, uid: currentUser.uid };
+                        
+                        if (lootbox.id) {
+                            // Update existing
+                            delete lootboxWithUid.id; // Remove id from data before saving
+                            await setDoc(doc(window.firebaseDb, 'lootboxes', lootbox.id), lootboxWithUid);
+                            console.log('Updated lootbox in Firebase:', lootbox.id);
+                        } else {
+                            // Create new
+                            const docRef = await addDoc(collection(window.firebaseDb, 'lootboxes'), lootboxWithUid);
+                            this.lootboxes[i].id = docRef.id; // Store the new ID
+                            console.log('Created new lootbox in Firebase:', docRef.id);
+                        }
+                    }
+                    
+                    // Also save to localStorage as backup
+                    localStorage.setItem('lootboxes', JSON.stringify(this.lootboxes));
+                    console.log('Saved to Firebase and localStorage');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error saving to Firebase:', error);
+                // Fall through to localStorage save
+            }
+        }
+        
+        // Fallback to localStorage only
         try {
             localStorage.setItem('lootboxes', JSON.stringify(this.lootboxes));
+            console.log('Saved to localStorage only');
         } catch (error) {
             console.error('Error saving lootboxes:', error);
             alert('Error saving lootboxes. Your changes may not be preserved.');
@@ -802,7 +932,6 @@ function saveLootbox() {
     app.saveLootbox();
 }
 
-// FIXED: Better toggle function with smooth animation
 function toggleSessionHistory() {
     const content = document.getElementById('sessionContent');
     const btn = document.getElementById('toggleButton');
@@ -839,10 +968,16 @@ const sharedData = urlParams.get('share');
 if (sharedData) {
     try {
         const lootbox = JSON.parse(decodeURIComponent(sharedData));
-        app.lootboxes.push(lootbox);
-        app.saveLootboxes();
-        app.renderLootboxes();
-        alert(`Imported: ${lootbox.name}`);
+        // Wait for app to be ready before adding shared lootbox
+        const waitForApp = setInterval(async () => {
+            if (app.isFirebaseReady) {
+                clearInterval(waitForApp);
+                app.lootboxes.push(lootbox);
+                await app.saveLootboxes();
+                app.renderLootboxes();
+                alert(`Imported: ${lootbox.name}`);
+            }
+        }, 100);
     } catch (error) {
         console.error('Error importing shared lootbox:', error);
     }
