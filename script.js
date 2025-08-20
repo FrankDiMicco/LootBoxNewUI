@@ -150,26 +150,11 @@ class LootboxApp {
                 
             } catch (error) {
                 console.error('Failed to load chests from Firestore:', error);
-                // Fall through to fallback
+                // Fall through to hardcoded fallback
             }
         }
         
-        // Fallback: try manifest.json
-        try {
-            const response = await fetch('chests/manifest.json', { 
-                cache: 'no-store' 
-            });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const manifest = await response.json();
-            console.log('Loaded chest manifest from file');
-            return manifest.chests || [];
-        } catch (manifestError) {
-            console.error('Failed to load chest manifest from file:', manifestError);
-        }
-        
-        // Final fallback: hardcoded chest list
+        // Hardcoded fallback: use default chest list
         console.log('Using hardcoded chest fallback');
         return [
             { file: 'chest.png', name: 'Default Chest', description: 'Classic treasure chest' },
