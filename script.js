@@ -585,20 +585,6 @@ class LootboxApp {
             totalElement.style.color = '#10b981';
         }
     }
-    
-    evenlyDistributeOdds() {
-        const rows = document.querySelectorAll('#itemsList .item-row');
-        if (rows.length === 0) return;
-        
-        const evenOdds = (1.0 / rows.length).toFixed(3);
-        
-        rows.forEach(row => {
-            const oddsInput = row.querySelector('.item-odds-input');
-            oddsInput.value = parseFloat(evenOdds);
-        });
-        
-        this.updateTotalOdds();
-    }
 
     async saveLootbox() {
         // Check if modal is open (indicates user action from Save button)
@@ -946,10 +932,6 @@ function saveLootbox() {
     app.saveLootbox();
 }
 
-function evenlyDistributeOdds() {
-    app.evenlyDistributeOdds();
-}
-
 function toggleSessionHistory() {
     const content = document.getElementById('sessionContent');
     const btn = document.getElementById('toggleButton');
@@ -985,18 +967,64 @@ const urlParams = new URLSearchParams(window.location.search);
 const sharedData = urlParams.get('share');
 if (sharedData) {
     try {
-        const lootbox = JSON.parse(decodeURIComponent(sharedData));
+        const sharedLootbox = JSON.parse(decodeURIComponent(sharedData));
+        
         // Wait for app to be ready before adding shared lootbox
         const waitForApp = setInterval(async () => {
             if (app.isFirebaseReady) {
                 clearInterval(waitForApp);
-                app.lootboxes.push(lootbox);
-                await app.saveLootboxes();
-                app.renderLootboxes();
-                alert(`Imported: ${lootbox.name}`);
+                
+                // Check if this lootbox already exists (by name and items)
+                const exists = app.lootboxes.some(existing => 
+                    existing.name === sharedLootbox.name && 
+                    JSON.stringify(existing.items) === JSON.stringify(sharedLootbox.items)
+                );
+                
+                if (exists) {
+                    alert(`"${sharedLootbox.name}" is already in your collection!`);
+                } else {
+                    // Clean up the lootbox data for import
+                    const cleanLootbox = {
+                        name: sharedLootbox.name,
+                        items: sharedLootbox.items,
+                        chestImage: sharedLootbox.chestImage || 'chests/chest.png',
+                        revealContents: sharedLootbox.revealContents !== false, // Default to true
+                        revealOdds: sharedLootbox.revealOdds !== false, // Default to true
+                        maxTries: sharedLootbox.maxTries || "unlimited",
+                        remainingTries: sharedLootbox.remainingTries || sharedLootbox.maxTries || "unlimited",
+                        spins: 0, // Reset stats for imported lootbox
+                        lastUsed: null, // Reset usage
+                        favorite: false, // Not a favorite by default
+                        imported: true, // Mark as imported
+                        importedAt: new Date().toISOString()
+                    };
+                    
+                    // Add to collection
+                    app.lootboxes.push(cleanLootbox);
+                    
+                    // Save to Firebase/localStorage
+                    await app.saveLootboxes();
+                    
+                    // Update display
+                    app.renderLootboxes();
+                    
+                    // Show success message
+                    alert(`✨ Successfully imported "${cleanLootbox.name}"!\n\nIt has been added to your collection.`);
+                    
+                    console.log('Successfully imported shared lootbox:', cleanLootbox.name);
+                }
+                
+                // Clean up URL after import
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
             }
         }, 100);
     } catch (error) {
         console.error('Error importing shared lootbox:', error);
+        alert('❌ Error importing lootbox. The share link may be corrupted.');
+        
+        // Clean up URL even on error
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
     }
 }
