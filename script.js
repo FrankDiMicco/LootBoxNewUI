@@ -666,10 +666,29 @@ class LootboxApp {
         this.closeModal();
     }
 
-    async deleteLootbox(index) {
-        if (confirm('Are you sure you want to delete this lootbox?')) {
-            const lootbox = this.lootboxes[index];
-            
+    deleteLootbox(index) {
+        const lootbox = this.lootboxes[index];
+        
+        // Show custom delete confirmation modal
+        document.getElementById('deleteLootboxName').textContent = lootbox.name;
+        document.getElementById('deleteModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Store the index for the actual deletion
+        this.pendingDeleteIndex = index;
+    }
+
+    async confirmDeleteLootbox() {
+        const index = this.pendingDeleteIndex;
+        if (index === undefined) return;
+        
+        const lootbox = this.lootboxes[index];
+        const lootboxName = lootbox.name;
+        
+        // Close modal first
+        this.closeDeleteModal();
+        
+        try {
             // Delete from Firebase if it has an ID
             if (lootbox.id && this.isFirebaseReady) {
                 try {
@@ -680,10 +699,52 @@ class LootboxApp {
                 }
             }
             
+            // Remove from local array
             this.lootboxes.splice(index, 1);
             await this.saveLootboxes();
             this.renderLootboxes();
+            
+            // Show success message
+            this.showSuccessMessage(`"${lootboxName}" has been deleted`);
+            
+        } catch (error) {
+            console.error('Error deleting lootbox:', error);
+            this.showSuccessMessage('Error deleting lootbox', true);
         }
+        
+        // Clear pending delete
+        this.pendingDeleteIndex = undefined;
+    }
+
+    closeDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('show');
+        document.body.style.overflow = '';
+        this.pendingDeleteIndex = undefined;
+    }
+
+    showSuccessMessage(message, isError = false) {
+        const successMessage = document.getElementById('successMessage');
+        const successText = document.getElementById('successText');
+        const successContent = successMessage.querySelector('.success-content');
+        
+        successText.textContent = message;
+        
+        // Change styling for error messages
+        if (isError) {
+            successContent.style.color = '#dc2626';
+            successMessage.querySelector('.success-icon').textContent = '❌';
+        } else {
+            successContent.style.color = '#059669';
+            successMessage.querySelector('.success-icon').textContent = '✅';
+        }
+        
+        // Show message
+        successMessage.classList.add('show');
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            successMessage.classList.remove('show');
+        }, 3000);
     }
 
     async deleteLootboxFromFirebase(id) {
@@ -948,6 +1009,14 @@ function saveLootbox() {
 
 function evenlyDistributeOdds() {
     app.evenlyDistributeOdds();
+}
+
+function closeDeleteModal() {
+    app.closeDeleteModal();
+}
+
+function confirmDelete() {
+    app.confirmDeleteLootbox();
 }
 
 function toggleSessionHistory() {

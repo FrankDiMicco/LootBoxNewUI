@@ -448,8 +448,95 @@ body {
     transform: translateY(-1px);
 }
 
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
 .hidden {
     display: none !important;
+}
+
+/* Delete Modal Styles */
+.delete-modal-content {
+    max-width: 400px;
+    text-align: center;
+}
+
+.delete-modal-header {
+    padding: 25px 25px 20px;
+    border-bottom: none;
+    text-align: center;
+}
+
+.delete-modal-header h3 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #ef4444;
+    margin: 0;
+}
+
+.delete-modal-body {
+    padding: 20px 25px;
+}
+
+.delete-modal-body p {
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.delete-warning {
+    font-size: 14px;
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.delete-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* Success Message Styles */
+.success-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1002;
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.success-message.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+.success-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #059669;
+}
+
+.success-icon {
+    font-size: 18px;
 }
 
 /* Lootbox View */

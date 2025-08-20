@@ -144,6 +144,31 @@
         <div id="resultItem" class="result-item"></div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content delete-modal-content">
+            <div class="delete-modal-header">
+                <h3>Delete Lootbox</h3>
+            </div>
+            <div class="delete-modal-body">
+                <p>Are you sure you want to delete <strong id="deleteLootboxName"></strong>?</p>
+                <p class="delete-warning">This action cannot be undone.</p>
+            </div>
+            <div class="delete-modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="success-message">
+        <div class="success-content">
+            <div class="success-icon">✅</div>
+            <span id="successText"></span>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 
     <!-- Firebase CDN imports -->
