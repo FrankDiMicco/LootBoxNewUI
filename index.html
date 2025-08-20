@@ -144,5 +144,60 @@
     </div>
 
     <script src="script.js"></script>
+
+    <!-- Firebase CDN imports -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDX_7gT2YHIQnJ9Svna0-t-skJ7qNnygWM",
+            authDomain: "lootbox-creator.firebaseapp.com",
+            projectId: "lootbox-creator",
+            storageBucket: "lootbox-creator.firebasestorage.app",
+            messagingSenderId: "222437059752",
+            appId: "1:222437059752:web:f759d88598023b60c1a69d",
+            measurementId: "G-2NQVKW2XP6"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Sign in anonymously and perform smoke test
+        async function initFirebase() {
+            try {
+                // Anonymous sign in
+                const userCredential = await signInAnonymously(auth);
+                const uid = userCredential.user.uid;
+                console.log('Signed in anonymously with uid:', uid);
+
+                // Firestore smoke test - write data
+                const testData = {
+                    hello: 'world',
+                    uid: uid,
+                    timestamp: new Date()
+                };
+                
+                const docRef = await addDoc(collection(db, 'tests'), testData);
+                console.log('Document written with ID:', docRef.id);
+
+                // Firestore smoke test - read data back
+                const querySnapshot = await getDocs(collection(db, 'tests'));
+                querySnapshot.forEach((doc) => {
+                    console.log('Read document:', doc.id, '=>', doc.data());
+                });
+
+            } catch (error) {
+                console.error('Firebase error:', error);
+            }
+        }
+
+        // Initialize Firebase on page load
+        initFirebase();
+    </script>
 </body>
 </html>
