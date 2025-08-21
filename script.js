@@ -381,6 +381,9 @@ class LootboxApp {
                             <button class="action-btn" onclick="event.stopPropagation(); app.shareGroupBoxLink('${lootbox.groupBoxId}')">
                                 <img src="assets/graphics/share.png" alt="Share" class="action-icon">
                             </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); app.deleteGroupBox('${lootbox.groupBoxId}')">
+                                <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -839,6 +842,13 @@ class LootboxApp {
     }
 
     async confirmDeleteLootbox() {
+        // Check if this is a Group Box deletion
+        if (this.pendingDeleteGroupBoxId) {
+            await this.confirmDeleteGroupBox();
+            return;
+        }
+        
+        // Handle regular lootbox deletion
         const index = this.pendingDeleteIndex;
         if (index === undefined) return;
         
@@ -880,6 +890,7 @@ class LootboxApp {
         document.getElementById('deleteModal').classList.remove('show');
         document.body.style.overflow = '';
         this.pendingDeleteIndex = undefined;
+        this.pendingDeleteGroupBoxId = undefined;
     }
 
     showSuccessMessage(message, isError = false) {
@@ -1651,6 +1662,65 @@ class LootboxApp {
                 this.showSuccessMessage('Error updating favorite status', true);
             }
         }
+    }
+
+    deleteGroupBox(groupBoxId) {
+        const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
+        
+        if (groupBox) {
+            const groupBoxName = groupBox.groupBoxName || groupBox.lootboxData?.name || 'Group Box';
+            
+            // Show custom delete confirmation modal
+            document.getElementById('deleteLootboxName').textContent = groupBoxName;
+            document.getElementById('deleteModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+            
+            // Store the group box ID for the actual deletion
+            this.pendingDeleteGroupBoxId = groupBoxId;
+        }
+    }
+
+    async confirmDeleteGroupBox() {
+        const groupBoxId = this.pendingDeleteGroupBoxId;
+        if (!groupBoxId) return;
+        
+        const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
+        const groupBoxName = groupBox ? (groupBox.groupBoxName || groupBox.lootboxData?.name || 'Group Box') : 'Group Box';
+        
+        try {
+            // Delete from Firebase
+            if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
+                const currentUser = window.firebaseAuth.currentUser;
+                if (currentUser) {
+                    const { doc, deleteDoc } = window.firebaseFunctions;
+                    const participatedRef = doc(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes', groupBoxId);
+                    await deleteDoc(participatedRef);
+                    console.log('Deleted Group Box from Firebase:', groupBoxId);
+                }
+            }
+            
+            // Remove from local array
+            const groupBoxIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxId);
+            if (groupBoxIndex >= 0) {
+                this.participatedGroupBoxes.splice(groupBoxIndex, 1);
+            }
+            
+            // Update localStorage
+            localStorage.setItem('participatedGroupBoxes', JSON.stringify(this.participatedGroupBoxes));
+            
+            // Re-render the lootboxes
+            this.renderLootboxes();
+            
+            // Show success message
+            this.showSuccessMessage(`"${groupBoxName}" has been removed from your participated Group Boxes`);
+            
+        } catch (error) {
+            console.error('Error deleting Group Box:', error);
+            this.showSuccessMessage('Error removing Group Box', true);
+        }
+        
+        // Clear pending delete
+        this.pendingDeleteGroupBoxId = undefined;
     }
 }
 
