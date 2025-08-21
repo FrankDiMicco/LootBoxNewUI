@@ -41,22 +41,35 @@ body {
     border: none;
     cursor: pointer;
     padding: 8px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    width: 24px;
-    height: 18px;
+    display: block;
+    width: 32px;
+    height: 24px;
+    position: relative;
     transition: all 0.3s ease;
 }
 
 .hamburger-menu span {
     display: block;
-    height: 2px;
-    width: 18px;
-    background: white;
+    height: 3px;
+    width: 22px;
+    background: #ffffff !important;
     border-radius: 1px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     transition: all 0.3s ease;
-    margin: 1px 0;
+}
+
+.hamburger-menu span:nth-child(1) {
+    top: 6px;
+}
+
+.hamburger-menu span:nth-child(2) {
+    top: 12px;
+}
+
+.hamburger-menu span:nth-child(3) {
+    top: 18px;
 }
 
 .hamburger-menu:hover span {
