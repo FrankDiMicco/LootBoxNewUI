@@ -1028,10 +1028,16 @@ class LootboxApp {
     shareAsGroupBox() {
         if (this.sharingLootboxIndex === undefined) return;
         
-        const lootbox = this.lootboxes[this.sharingLootboxIndex];
+        const originalLootbox = this.lootboxes[this.sharingLootboxIndex];
+        
+        // Create a deep copy of the original lootbox
+        const lootboxCopy = this.deepCopyLootbox(originalLootbox);
+        
+        // Store the copy for use in createGroupBox (instead of the original index)
+        this.sharingLootboxCopy = lootboxCopy;
         
         // Pre-fill the group box name with original name + " - Group Box"
-        document.getElementById('groupBoxName').value = `${lootbox.name} - Group Box`;
+        document.getElementById('groupBoxName').value = `${originalLootbox.name} - Group Box`;
         
         // Reset form to defaults
         document.getElementById('triesPerPerson').value = 3;
@@ -1039,7 +1045,7 @@ class LootboxApp {
         document.getElementById('hideContents').checked = true;
         document.getElementById('hideOdds').checked = true;
         
-        // Hide share modal and show group box modal (preserve sharingLootboxIndex)
+        // Hide share modal and show group box modal
         document.getElementById('shareModal').classList.remove('show');
         document.getElementById('groupBoxModal').classList.add('show');
         document.body.style.overflow = 'hidden';
@@ -1049,27 +1055,30 @@ class LootboxApp {
         document.getElementById('shareModal').classList.remove('show');
         document.body.style.overflow = '';
         this.sharingLootboxIndex = undefined;
+        this.sharingLootboxCopy = undefined; // Clear the copy
     }
 
     closeGroupBoxModal() {
         document.getElementById('groupBoxModal').classList.remove('show');
         document.body.style.overflow = '';
-        // Clear the sharing index when user cancels group box creation
+        // Clear the sharing data when user cancels group box creation
         this.sharingLootboxIndex = undefined;
+        this.sharingLootboxCopy = undefined;
     }
 
     async createGroupBox() {
-        if (this.sharingLootboxIndex === undefined) return;
+        // Use the copy instead of the original
+        if (!this.sharingLootboxCopy) return;
         
         // Check Firebase auth first
         if (!this.isFirebaseReady || !window.firebaseAuth?.currentUser) {
             console.error('Firebase auth not ready or user not authenticated');
-            this.showSuccessMessage('Authentication required. Please wait and try again.', true);
+            this.showToast('Authentication required. Please wait and try again.');
             return;
         }
         
         const currentUser = window.firebaseAuth.currentUser;
-        const lootbox = this.lootboxes[this.sharingLootboxIndex];
+        const lootbox = this.sharingLootboxCopy; // Use the copy
         const groupBoxName = document.getElementById('groupBoxName').value.trim();
         
         // Validate required inputs
@@ -1130,6 +1139,31 @@ class LootboxApp {
             // Generate shareable link
             const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
             
+            // Create the participated group box entry for the creator
+            const participatedGroupBox = {
+                groupBoxId: docRef.id,
+                groupBoxName: groupBoxName,
+                lootboxData: {
+                    name: groupBoxName,
+                    items: lootbox.items,
+                    chestImage: lootbox.chestImage
+                },
+                settings: groupBoxData.settings,
+                createdBy: currentUser.uid,
+                creatorName: `User ${currentUser.uid.substring(0, 8)}`,
+                totalOpens: 0,
+                uniqueUsers: 0,
+                firstParticipated: new Date(),
+                lastParticipated: new Date(),
+                userTotalOpens: 0,
+                userRemainingTries: groupBoxData.settings.triesPerPerson,
+                favorite: false,
+                isGroupBox: true
+            };
+            
+            // Add to participated group boxes collection
+            await this.saveParticipatedGroupBox(participatedGroupBox);
+            
             // Try native share first, then fallback to clipboard
             if (navigator.share) {
                 try {
@@ -1154,12 +1188,18 @@ class LootboxApp {
                 await this.fallbackToClipboard(groupBoxUrl, groupBoxName);
             }
             
+            // Re-render to show the new group box in the list
+            this.renderLootboxes();
+            
             this.closeGroupBoxModal();
             
         } catch (error) {
             console.error('Group Box creation failed:', error.code, error.message);
-            this.showSuccessMessage(`Create failed: ${error.code || ''} ${error.message || error}`, true);
+            this.showToast(`Create failed: ${error.code || ''} ${error.message || error}`);
         }
+        
+        // Always clear the copy after attempt (success or failure)
+        this.sharingLootboxCopy = undefined;
     }
 
     filterLootboxes(filter) {
@@ -2001,6 +2041,25 @@ class LootboxApp {
             // Final fallback: show URL in toast for 6 seconds
             this.showToast(`Share link: ${url}`, 6000);
         }
+    }
+
+    deepCopyLootbox(lootbox) {
+        return {
+            name: lootbox.name,
+            items: lootbox.items.map(item => ({
+                name: item.name,
+                odds: item.odds
+            })),
+            chestImage: lootbox.chestImage || 'chests/chest.png',
+            revealContents: lootbox.revealContents,
+            revealOdds: lootbox.revealOdds,
+            maxTries: lootbox.maxTries,
+            remainingTries: lootbox.remainingTries,
+            spins: 0, // Reset stats for the copy
+            lastUsed: new Date().toISOString(),
+            favorite: false, // Reset favorite status for copy
+            isGroupBox: false // Start as regular lootbox, will be converted to group box
+        };
     }
 }
 
