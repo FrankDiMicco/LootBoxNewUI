@@ -1103,7 +1103,7 @@ class LootboxApp {
             
         } catch (error) {
             console.error('Error creating group box:', error);
-            alert('Error creating group box. Please try again.');
+            this.showSuccessMessage('Error creating group box. Please try again.', true);
         }
     }
 
