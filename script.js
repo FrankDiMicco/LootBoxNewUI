@@ -491,9 +491,13 @@ class LootboxApp {
         // Add to session history
         this.addToHistory(result);
 
-        // Save changes
-        this.lootboxes[this.currentLootboxIndex] = this.currentLootbox;
-        await this.saveLootboxes();
+        // Save changes differently for group boxes vs personal lootboxes
+        if (this.currentLootbox.isGroupBox) {
+            await this.saveGroupBoxSpin(result);
+        } else {
+            this.lootboxes[this.currentLootboxIndex] = this.currentLootbox;
+            await this.saveLootboxes();
+        }
 
         // Show result
         this.showResult(result);
@@ -1207,6 +1211,190 @@ class LootboxApp {
             alert('Error saving lootboxes. Your changes may not be preserved.');
         }
     }
+
+    async loadAndOpenGroupBox(groupBoxId) {
+        try {
+            if (!this.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                alert('❌ Firebase not available. Cannot load Group Box.');
+                return;
+            }
+
+            const { doc, getDoc } = window.firebaseFunctions;
+            const groupBoxRef = doc(window.firebaseDb, 'group_boxes', groupBoxId);
+            const groupBoxSnap = await getDoc(groupBoxRef);
+
+            if (!groupBoxSnap.exists()) {
+                alert('❌ Group Box not found or has expired.');
+                // Clean up URL
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+                return;
+            }
+
+            const groupBoxData = groupBoxSnap.data();
+            
+            // Check if group box has expired
+            if (groupBoxData.settings.expiresAt && new Date(groupBoxData.settings.expiresAt.toDate()) < new Date()) {
+                alert('❌ This Group Box has expired.');
+                // Clean up URL
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+                return;
+            }
+
+            // Check if group box is active
+            if (groupBoxData.status !== 'active') {
+                alert('❌ This Group Box is no longer active.');
+                // Clean up URL
+                const newUrl = window.location.origin + window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+                return;
+            }
+
+            // Check user's existing tries for this group box
+            const userId = window.firebaseAuth.currentUser?.uid || 'anonymous';
+            const userTriesRef = doc(window.firebaseDb, 'group_boxes', groupBoxId, 'user_tries', userId);
+            const userTriesSnap = await getDoc(userTriesRef);
+            
+            let remainingTries = groupBoxData.settings.triesPerPerson;
+            let totalOpens = 0;
+            
+            if (userTriesSnap.exists()) {
+                const userTriesData = userTriesSnap.data();
+                remainingTries = userTriesData.remainingTries;
+                totalOpens = userTriesData.totalOpens;
+            }
+
+            // Create a temporary lootbox object from the group box data
+            const groupBoxLootbox = {
+                name: groupBoxData.lootboxData.name,
+                items: groupBoxData.lootboxData.items,
+                chestImage: groupBoxData.lootboxData.chestImage || 'chests/chest.png',
+                revealContents: !groupBoxData.settings.hideContents,
+                revealOdds: !groupBoxData.settings.hideOdds,
+                maxTries: groupBoxData.settings.triesPerPerson,
+                remainingTries: remainingTries,
+                spins: totalOpens,
+                lastUsed: new Date().toISOString(),
+                favorite: false,
+                isGroupBox: true,
+                groupBoxId: groupBoxId,
+                groupBoxData: groupBoxData
+            };
+
+            // Set this as the current lootbox and open directly
+            this.currentLootbox = groupBoxLootbox;
+            this.currentLootboxIndex = -1; // Special index for group boxes
+            
+            // Clear session history when opening a group box
+            this.sessionHistory = [];
+            
+            // Reset cooldown
+            this.isOnCooldown = false;
+            if (this.popupTimeout) {
+                clearTimeout(this.popupTimeout);
+                this.popupTimeout = null;
+            }
+            
+            // Skip list view and go directly to lootbox view
+            document.getElementById('listView').classList.add('hidden');
+            document.getElementById('lootboxView').classList.remove('hidden');
+            
+            this.renderLootboxView();
+            this.updateSessionDisplay();
+            this.updateLootboxInteractivity();
+
+            console.log('Successfully loaded Group Box:', groupBoxData.lootboxData.name);
+            
+            // Clean up URL after successful load
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+
+        } catch (error) {
+            console.error('Error loading Group Box:', error);
+            alert('❌ Error loading Group Box. Please try again.');
+            
+            // Clean up URL on error
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    }
+
+    async saveGroupBoxSpin(result) {
+        try {
+            if (!this.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                console.error('Firebase not available for saving Group Box spin');
+                return;
+            }
+
+            const { collection, addDoc, doc, getDoc, setDoc, updateDoc } = window.firebaseFunctions;
+            const groupBoxId = this.currentLootbox.groupBoxId;
+            const userId = window.firebaseAuth.currentUser?.uid || 'anonymous';
+            
+            // Generate a simple user name for anonymous users
+            const userName = userId === 'anonymous' ? 'Anonymous User' : `User ${userId.substring(0, 8)}`;
+            
+            // Create session ID for this opening session
+            const sessionId = Date.now().toString();
+            
+            // Save the spin result to group_boxes/{groupBoxId}/opens/{openId}
+            const openData = {
+                userId: userId,
+                userName: userName,
+                item: result,
+                timestamp: new Date(),
+                sessionId: sessionId
+            };
+            
+            await addDoc(collection(window.firebaseDb, 'group_boxes', groupBoxId, 'opens'), openData);
+            
+            // Update or create user tries tracking in group_boxes/{groupBoxId}/user_tries/{userId}
+            const userTriesRef = doc(window.firebaseDb, 'group_boxes', groupBoxId, 'user_tries', userId);
+            const userTriesSnap = await getDoc(userTriesRef);
+            
+            let userTriesData;
+            if (userTriesSnap.exists()) {
+                userTriesData = userTriesSnap.data();
+                userTriesData.remainingTries--;
+                userTriesData.totalOpens++;
+                userTriesData.lastOpen = new Date();
+            } else {
+                userTriesData = {
+                    remainingTries: this.currentLootbox.maxTries - 1,
+                    totalOpens: 1,
+                    lastOpen: new Date()
+                };
+            }
+            
+            await setDoc(userTriesRef, userTriesData);
+            
+            // Update group box statistics
+            const groupBoxRef = doc(window.firebaseDb, 'group_boxes', groupBoxId);
+            const groupBoxSnap = await getDoc(groupBoxRef);
+            
+            if (groupBoxSnap.exists()) {
+                const groupBoxData = groupBoxSnap.data();
+                const updates = {
+                    totalOpens: (groupBoxData.totalOpens || 0) + 1
+                };
+                
+                // Update unique users count if this is the first time this user has opened
+                if (!userTriesSnap.exists()) {
+                    updates.uniqueUsers = (groupBoxData.uniqueUsers || 0) + 1;
+                }
+                
+                await updateDoc(groupBoxRef, updates);
+            }
+            
+            // Update local remaining tries
+            this.currentLootbox.remainingTries = userTriesData.remainingTries;
+            
+            console.log('Successfully saved Group Box spin:', result);
+            
+        } catch (error) {
+            console.error('Error saving Group Box spin:', error);
+        }
+    }
 }
 
 // Global functions for onclick handlers
@@ -1300,9 +1488,11 @@ function createGroupBox() {
 // Initialize app
 const app = new LootboxApp();
 
-// Handle shared lootboxes
+// Handle shared lootboxes and group boxes
 const urlParams = new URLSearchParams(window.location.search);
 const sharedData = urlParams.get('share');
+const groupBoxId = urlParams.get('groupbox');
+
 if (sharedData) {
     try {
         const sharedLootbox = JSON.parse(decodeURIComponent(sharedData));
@@ -1365,4 +1555,14 @@ if (sharedData) {
         const newUrl = window.location.origin + window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
     }
+}
+
+if (groupBoxId) {
+    // Wait for app to be ready before loading group box
+    const waitForApp = setInterval(async () => {
+        if (app.isFirebaseReady) {
+            clearInterval(waitForApp);
+            await app.loadAndOpenGroupBox(groupBoxId);
+        }
+    }, 100);
 }
