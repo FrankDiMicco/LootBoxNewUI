@@ -1041,39 +1041,49 @@ class LootboxApp {
     async createGroupBox() {
         if (this.sharingLootboxIndex === undefined) return;
         
+        // Check Firebase auth first
+        if (!this.isFirebaseReady || !window.firebaseAuth?.currentUser) {
+            console.error('Firebase auth not ready or user not authenticated');
+            this.showSuccessMessage('Authentication required. Please wait and try again.', true);
+            return;
+        }
+        
+        const currentUser = window.firebaseAuth.currentUser;
         const lootbox = this.lootboxes[this.sharingLootboxIndex];
         const groupBoxName = document.getElementById('groupBoxName').value.trim();
         
+        // Validate required inputs
         if (!groupBoxName) {
-            alert('Please enter a group box name');
+            this.showSuccessMessage('Please enter a group box name', true);
+            return;
+        }
+        
+        if (!lootbox || !lootbox.items || lootbox.items.length === 0) {
+            this.showSuccessMessage('Invalid lootbox data. Please try again.', true);
             return;
         }
         
         try {
-            // Calculate expiration date
+            // Fix expiresAt to avoid undefined values
             const expiresValue = document.getElementById('expiresIn').value;
-            let expiresAt = null;
+            const expiresAt = (expiresValue === 'never') 
+                ? null 
+                : new Date(Date.now() + Number(expiresValue) * 60 * 60 * 1000);
             
-            if (expiresValue !== 'never') {
-                const hoursToAdd = parseInt(expiresValue);
-                expiresAt = new Date();
-                expiresAt.setHours(expiresAt.getHours() + hoursToAdd);
-            }
-            
-            // Prepare group box data according to FIRESTORE DATABASE STRUCTURE
+            // Prepare group box data with all required fields properly set
             const groupBoxData = {
-                createdBy: window.firebaseAuth.currentUser?.uid || 'anonymous',
-                creatorName: 'User', // Default name, could be enhanced with user profiles
+                createdBy: currentUser.uid, // Required by Firestore rules
+                creatorName: `User ${currentUser.uid.substring(0, 8)}`, // Generate consistent creator name
                 lootboxData: {
-                    name: lootbox.name,
+                    name: groupBoxName, // Use group box name, not lootbox name
                     items: lootbox.items,
-                    chestImage: lootbox.chestImage
+                    chestImage: lootbox.chestImage || 'chests/chest.png'
                 },
                 settings: {
-                    triesPerPerson: parseInt(document.getElementById('triesPerPerson').value),
+                    triesPerPerson: Number(document.getElementById('triesPerPerson').value) || 1,
                     expiresAt: expiresAt,
-                    hideContents: document.getElementById('hideContents').checked,
-                    hideOdds: document.getElementById('hideOdds').checked
+                    hideContents: Boolean(document.getElementById('hideContents').checked),
+                    hideOdds: Boolean(document.getElementById('hideOdds').checked)
                 },
                 totalOpens: 0,
                 uniqueUsers: 0,
@@ -1081,29 +1091,49 @@ class LootboxApp {
                 status: 'active'
             };
             
+            // Validate data before saving
+            if (!groupBoxData.lootboxData.items || groupBoxData.lootboxData.items.length === 0) {
+                throw new Error('No items in lootbox to share');
+            }
+            
             // Save to Firebase group_boxes collection
-            if (this.isFirebaseReady && window.firebaseDb && window.firebaseFunctions) {
-                const { collection, addDoc } = window.firebaseFunctions;
-                const docRef = await addDoc(collection(window.firebaseDb, 'group_boxes'), groupBoxData);
-                
-                // Generate shareable link to the group box
-                const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
-                
-                // Copy link to clipboard
+            if (!window.firebaseDb || !window.firebaseFunctions) {
+                throw new Error('Firebase database not available');
+            }
+            
+            const { collection, addDoc } = window.firebaseFunctions;
+            console.log('Creating group box with data:', groupBoxData);
+            
+            const docRef = await addDoc(collection(window.firebaseDb, 'group_boxes'), groupBoxData);
+            console.log('Group Box created with ID:', docRef.id);
+            
+            // Generate shareable link
+            const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
+            
+            // Copy link to clipboard with error handling
+            try {
                 await navigator.clipboard.writeText(groupBoxUrl);
-                
                 this.showSuccessMessage('Group Box created! Share link copied to clipboard.');
-                console.log('Group Box created with ID:', docRef.id);
-            } else {
-                alert('Firebase not available. Cannot create group box.');
-                return;
+            } catch (clipboardError) {
+                console.warn('Could not copy to clipboard:', clipboardError);
+                this.showSuccessMessage(`Group Box created! Share this link: ${groupBoxUrl}`);
             }
             
             this.closeGroupBoxModal();
             
         } catch (error) {
             console.error('Error creating group box:', error);
-            this.showSuccessMessage('Error creating group box. Please try again.', true);
+            let errorMessage = 'Error creating group box. ';
+            
+            if (error.code === 'permission-denied') {
+                errorMessage += 'Permission denied. Please check your authentication.';
+            } else if (error.message.includes('Firebase')) {
+                errorMessage += 'Database connection issue. Please try again.';
+            } else {
+                errorMessage += error.message || 'Please try again.';
+            }
+            
+            this.showSuccessMessage(errorMessage, true);
         }
     }
 
