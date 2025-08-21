@@ -88,12 +88,13 @@ body {
 }
 
 .filter-section {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(30, 41, 59, 0.85);
     backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 16px;
+    padding: 12px 20px;
+    border-radius: 12px;
     margin-bottom: 30px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .filter-buttons {
@@ -103,22 +104,23 @@ body {
 }
 
 .filter-btn {
-    background: #e2e8f0;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 25px;
+    background: rgba(71, 85, 105, 0.6);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    padding: 8px 16px;
+    border-radius: 20px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     transition: all 0.3s ease;
-    color: #64748b;
+    color: #d1d5db;
 }
 
 .filter-btn.active {
-    background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border-color: #8b5cf6;
     color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(30, 58, 138, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 12px rgba(139, 92, 246, 0.4);
 }
 
 .lootbox-grid {
@@ -292,14 +294,26 @@ body {
 
 
 .add-btn {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(145deg, #a855f7 0%, #8b5cf6 50%, #7c3aed 100%);
     bottom: 30px;
     right: 30px;
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.3), 
+                inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(124, 58, 237, 0.8);
 }
 
 .nav-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.add-btn:hover {
+    background: linear-gradient(145deg, #9333ea 0%, #7c3aed 50%, #6d28d9 100%);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.4), 
+                inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px);
 }
 
 
