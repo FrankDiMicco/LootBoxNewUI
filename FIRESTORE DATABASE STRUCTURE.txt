@@ -1,0 +1,35 @@
+FIRESTORE DATABASE STRUCTURE:
+
+COLLECTION: chests
+- Documents: default_chest, metal_chest, skull_bone_chest, wood_flower_chest, kid_happy_chest, fruit_wood_chest, weapon_wood_chest, orb_chest
+- Fields per document:
+  - name (string): Display name like "Default Chest"  
+  - fileName (string): File name like "chest.png"
+  - description (string): Description text
+  - tier (string): "free" or "premium"
+  - sortOrder (number): 1, 2, 3, etc.
+
+COLLECTION: lootboxes  
+- User's personal lootboxes
+- Fields: name, items, chestImage, revealContents, revealOdds, maxTries, remainingTries, spins, lastUsed, favorite, uid, id
+
+COLLECTION: group_boxes
+- Documents: test_group_box_1 (and future group boxes)
+- Fields per document:
+  - createdBy (string): "test_user_123" 
+  - creatorName (string): "Alex"
+  - lootboxData (map): {name, items, chestImage}
+  - settings (map): {triesPerPerson, expiresAt, hideContents, hideOdds}
+  - totalOpens (number): 0
+  - uniqueUsers (number): 0
+  - createdAt (timestamp)
+  - status (string): "active"
+
+SUB-COLLECTIONS under group_boxes/{groupBoxId}/:
+- opens/{openId}: {userId, userName, item, timestamp, sessionId}
+- user_tries/{userId}: {remainingTries, totalOpens, lastOpen}
+
+COLLECTION: tests
+- Test documents for Firebase functionality
+
+SECURITY RULES: Public read for group_boxes and chests, user-scoped for lootboxes

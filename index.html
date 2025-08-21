@@ -195,6 +195,52 @@
         </div>
     </div>
 
+    <!-- Group Box Creation Modal -->
+    <div id="groupBoxModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Group Box</h3>
+                <button class="close-btn" onclick="closeGroupBoxModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Group Box Name</label>
+                    <input type="text" id="groupBoxName" class="form-input" placeholder="Enter group box name">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tries per person</label>
+                    <input type="number" id="triesPerPerson" class="form-input" value="3" min="1" max="10">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Expires in</label>
+                    <select id="expiresIn" class="form-input">
+                        <option value="24">24 hours</option>
+                        <option value="72">3 days</option>
+                        <option value="168">1 week</option>
+                        <option value="never">Never</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hideContents" checked>
+                        <label>Hide contents from recipients</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hideOdds" checked>
+                        <label>Hide odds from recipients</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeGroupBoxModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createGroupBox()">Create Group Box</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Message -->
     <div id="successMessage" class="success-message">
         <div class="success-content">

@@ -905,14 +905,103 @@ class LootboxApp {
     }
 
     shareAsGroupBox() {
-        alert('Group Box creation coming soon!');
+        if (this.sharingLootboxIndex === undefined) return;
+        
+        const lootbox = this.lootboxes[this.sharingLootboxIndex];
+        
+        // Pre-fill the group box name with original name + " - Group Box"
+        document.getElementById('groupBoxName').value = `${lootbox.name} - Group Box`;
+        
+        // Reset form to defaults
+        document.getElementById('triesPerPerson').value = 3;
+        document.getElementById('expiresIn').value = '24';
+        document.getElementById('hideContents').checked = true;
+        document.getElementById('hideOdds').checked = true;
+        
+        // Close share modal and show group box modal
         this.closeShareModal();
+        document.getElementById('groupBoxModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
 
     closeShareModal() {
         document.getElementById('shareModal').classList.remove('show');
         document.body.style.overflow = '';
         this.sharingLootboxIndex = undefined;
+    }
+
+    closeGroupBoxModal() {
+        document.getElementById('groupBoxModal').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    async createGroupBox() {
+        if (this.sharingLootboxIndex === undefined) return;
+        
+        const lootbox = this.lootboxes[this.sharingLootboxIndex];
+        const groupBoxName = document.getElementById('groupBoxName').value.trim();
+        
+        if (!groupBoxName) {
+            alert('Please enter a group box name');
+            return;
+        }
+        
+        try {
+            // Calculate expiration date
+            const expiresValue = document.getElementById('expiresIn').value;
+            let expiresAt = null;
+            
+            if (expiresValue !== 'never') {
+                const hoursToAdd = parseInt(expiresValue);
+                expiresAt = new Date();
+                expiresAt.setHours(expiresAt.getHours() + hoursToAdd);
+            }
+            
+            // Prepare group box data according to FIRESTORE DATABASE STRUCTURE
+            const groupBoxData = {
+                createdBy: window.firebaseAuth.currentUser?.uid || 'anonymous',
+                creatorName: 'User', // Default name, could be enhanced with user profiles
+                lootboxData: {
+                    name: lootbox.name,
+                    items: lootbox.items,
+                    chestImage: lootbox.chestImage
+                },
+                settings: {
+                    triesPerPerson: parseInt(document.getElementById('triesPerPerson').value),
+                    expiresAt: expiresAt,
+                    hideContents: document.getElementById('hideContents').checked,
+                    hideOdds: document.getElementById('hideOdds').checked
+                },
+                totalOpens: 0,
+                uniqueUsers: 0,
+                createdAt: new Date(),
+                status: 'active'
+            };
+            
+            // Save to Firebase group_boxes collection
+            if (this.isFirebaseReady && window.firebaseDb && window.firebaseFunctions) {
+                const { collection, addDoc } = window.firebaseFunctions;
+                const docRef = await addDoc(collection(window.firebaseDb, 'group_boxes'), groupBoxData);
+                
+                // Generate shareable link to the group box
+                const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
+                
+                // Copy link to clipboard
+                await navigator.clipboard.writeText(groupBoxUrl);
+                
+                this.showSuccessMessage('Group Box created! Share link copied to clipboard.');
+                console.log('Group Box created with ID:', docRef.id);
+            } else {
+                alert('Firebase not available. Cannot create group box.');
+                return;
+            }
+            
+            this.closeGroupBoxModal();
+            
+        } catch (error) {
+            console.error('Error creating group box:', error);
+            alert('Error creating group box. Please try again.');
+        }
     }
 
     filterLootboxes(filter) {
@@ -1196,6 +1285,14 @@ function shareAsLootbox() {
 
 function shareAsGroupBox() {
     app.shareAsGroupBox();
+}
+
+function closeGroupBoxModal() {
+    app.closeGroupBoxModal();
+}
+
+function createGroupBox() {
+    app.createGroupBox();
 }
 
 // Initialize app
