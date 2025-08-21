@@ -1122,18 +1122,8 @@ class LootboxApp {
             this.closeGroupBoxModal();
             
         } catch (error) {
-            console.error('Error creating group box:', error);
-            let errorMessage = 'Error creating group box. ';
-            
-            if (error.code === 'permission-denied') {
-                errorMessage += 'Permission denied. Please check your authentication.';
-            } else if (error.message.includes('Firebase')) {
-                errorMessage += 'Database connection issue. Please try again.';
-            } else {
-                errorMessage += error.message || 'Please try again.';
-            }
-            
-            this.showSuccessMessage(errorMessage, true);
+            console.error('Group Box creation failed:', error.code, error.message);
+            this.showSuccessMessage(`Create failed: ${error.code || ''} ${error.message || error}`, true);
         }
     }
 
