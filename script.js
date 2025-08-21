@@ -679,6 +679,32 @@ class LootboxApp {
         this.updateTotalOdds();
     }
 
+    randomizeOdds() {
+        const rows = document.querySelectorAll('#itemsList .item-row');
+        if (rows.length === 0) return;
+        
+        // Generate random values for each item
+        const randomValues = [];
+        let sum = 0;
+        
+        for (let i = 0; i < rows.length; i++) {
+            const randomValue = Math.random();
+            randomValues.push(randomValue);
+            sum += randomValue;
+        }
+        
+        // Normalize the random values so they add up to 1
+        const normalizedOdds = randomValues.map(value => value / sum);
+        
+        // Apply the normalized odds to each input
+        rows.forEach((row, index) => {
+            const oddsInput = row.querySelector('.item-odds-input');
+            oddsInput.value = normalizedOdds[index].toFixed(3);
+        });
+        
+        this.updateTotalOdds();
+    }
+
     async saveLootbox() {
         // Check if modal is open (indicates user action from Save button)
         const modal = document.getElementById('editModal');
@@ -1119,6 +1145,10 @@ function saveLootbox() {
 
 function evenlyDistributeOdds() {
     app.evenlyDistributeOdds();
+}
+
+function randomizeOdds() {
+    app.randomizeOdds();
 }
 
 function closeDeleteModal() {
