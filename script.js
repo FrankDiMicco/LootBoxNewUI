@@ -1767,6 +1767,9 @@ class LootboxApp {
         const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
         const groupBoxName = groupBox ? (groupBox.groupBoxName || groupBox.lootboxData?.name || 'Group Box') : 'Group Box';
         
+        // Close modal first
+        this.closeDeleteModal();
+        
         try {
             // Delete from Firebase
             if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
