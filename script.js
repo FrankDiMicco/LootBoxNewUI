@@ -984,25 +984,45 @@ class LootboxApp {
         alert('Group box features coming soon!');
     }
 
-    shareAsLootbox() {
+    async shareAsLootbox() {
         if (this.sharingLootboxIndex === undefined) return;
         
         const lootbox = this.lootboxes[this.sharingLootboxIndex];
         const data = encodeURIComponent(JSON.stringify(lootbox));
         const url = `${window.location.origin}${window.location.pathname}?share=${data}`;
         
+        this.closeShareModal();
+        
+        // Try native share first
         if (navigator.share) {
-            navigator.share({
-                title: `${lootbox.name} - Lootbox`,
-                url: url
-            });
-        } else {
-            navigator.clipboard.writeText(url).then(() => {
-                this.showSuccessMessage('Share link copied to clipboard!');
-            });
+            try {
+                await navigator.share({
+                    title: `${lootbox.name} - Lootbox Creator`,
+                    text: `Check out this custom lootbox: ${lootbox.name}`,
+                    url: url
+                });
+                this.showToast('Shared successfully');
+                return;
+            } catch (error) {
+                // User cancelled share or error occurred
+                if (error.name !== 'AbortError') {
+                    console.warn('Native share failed:', error);
+                } else {
+                    // User cancelled, don't show error
+                    return;
+                }
+            }
         }
         
-        this.closeShareModal();
+        // Fallback to clipboard
+        try {
+            await navigator.clipboard.writeText(url);
+            this.showToast('Link copied to clipboard');
+        } catch (error) {
+            console.error('Clipboard failed:', error);
+            // Final fallback: show URL in toast for 6 seconds
+            this.showToast(`Share link: ${url}`, 6000);
+        }
     }
 
     shareAsGroupBox() {
@@ -1110,13 +1130,28 @@ class LootboxApp {
             // Generate shareable link
             const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
             
-            // Copy link to clipboard with error handling
-            try {
-                await navigator.clipboard.writeText(groupBoxUrl);
-                this.showSuccessMessage('Group Box created! Share link copied to clipboard.');
-            } catch (clipboardError) {
-                console.warn('Could not copy to clipboard:', clipboardError);
-                this.showSuccessMessage(`Group Box created! Share this link: ${groupBoxUrl}`);
+            // Try native share first, then fallback to clipboard
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `${groupBoxName} - Group Box`,
+                        text: `Join this shared lootbox group: ${groupBoxName}`,
+                        url: groupBoxUrl
+                    });
+                    this.showToast('Group Box created and shared!');
+                } catch (shareError) {
+                    if (shareError.name !== 'AbortError') {
+                        console.warn('Native share failed:', shareError);
+                        // Fallback to clipboard
+                        await this.fallbackToClipboard(groupBoxUrl, groupBoxName);
+                    } else {
+                        // User cancelled, still show success for creation
+                        this.showToast('Group Box created successfully');
+                    }
+                }
+            } else {
+                // Fallback to clipboard
+                await this.fallbackToClipboard(groupBoxUrl, groupBoxName);
             }
             
             this.closeGroupBoxModal();
@@ -1690,18 +1725,40 @@ class LootboxApp {
         await this.loadAndOpenGroupBox(groupBoxId);
     }
 
-    shareGroupBoxLink(groupBoxId) {
+    async shareGroupBoxLink(groupBoxId) {
+        const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
+        const groupBoxName = groupBox ? (groupBox.groupBoxName || groupBox.lootboxData?.name || 'Group Box') : 'Group Box';
         const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${groupBoxId}`;
         
+        // Try native share first
         if (navigator.share) {
-            navigator.share({
-                title: 'Group Box - Lootbox Creator',
-                url: groupBoxUrl
-            });
-        } else {
-            navigator.clipboard.writeText(groupBoxUrl).then(() => {
-                this.showSuccessMessage('Group Box link copied to clipboard!');
-            });
+            try {
+                await navigator.share({
+                    title: `${groupBoxName} - Group Box`,
+                    text: `Join this shared lootbox group: ${groupBoxName}`,
+                    url: groupBoxUrl
+                });
+                this.showToast('Shared successfully');
+                return;
+            } catch (error) {
+                // User cancelled share or error occurred
+                if (error.name !== 'AbortError') {
+                    console.warn('Native share failed:', error);
+                } else {
+                    // User cancelled, don't show error
+                    return;
+                }
+            }
+        }
+        
+        // Fallback to clipboard
+        try {
+            await navigator.clipboard.writeText(groupBoxUrl);
+            this.showToast('Link copied to clipboard');
+        } catch (error) {
+            console.error('Clipboard failed:', error);
+            // Final fallback: show URL in toast for 6 seconds
+            this.showToast(`Share link: ${groupBoxUrl}`, 6000);
         }
     }
 
@@ -1900,6 +1957,50 @@ class LootboxApp {
         // Hide all error messages
         const errorMessages = document.querySelectorAll('.error-message');
         errorMessages.forEach(error => error.classList.add('hidden'));
+    }
+
+    showToast(message, durationMs = 3000) {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            console.error('Toast container not found');
+            return;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+
+        toastContainer.appendChild(toast);
+
+        // Trigger show animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        // Auto-hide and remove toast
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, durationMs);
+    }
+
+    async fallbackToClipboard(url, itemName) {
+        try {
+            await navigator.clipboard.writeText(url);
+            this.showToast('Link copied to clipboard');
+        } catch (error) {
+            console.error('Clipboard failed:', error);
+            // Final fallback: show URL in toast for 6 seconds
+            this.showToast(`Share link: ${url}`, 6000);
+        }
     }
 }
 
