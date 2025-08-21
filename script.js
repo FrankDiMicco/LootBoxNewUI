@@ -1164,6 +1164,10 @@ class LootboxApp {
             // Add to participated group boxes collection
             await this.saveParticipatedGroupBox(participatedGroupBox);
             
+            // Immediately refresh the home screen and close modal
+            this.renderLootboxes();
+            this.closeGroupBoxModal();
+            
             // Try native share first, then fallback to clipboard
             if (navigator.share) {
                 try {
@@ -1187,11 +1191,6 @@ class LootboxApp {
                 // Fallback to clipboard
                 await this.fallbackToClipboard(groupBoxUrl, groupBoxName);
             }
-            
-            // Re-render to show the new group box in the list
-            this.renderLootboxes();
-            
-            this.closeGroupBoxModal();
             
         } catch (error) {
             console.error('Group Box creation failed:', error.code, error.message);
@@ -1525,21 +1524,21 @@ class LootboxApp {
             
             const participatedData = {
                 groupBoxId: groupBoxData.groupBoxId,
-                groupBoxName: groupBoxData.name,
+                groupBoxName: groupBoxData.groupBoxName || groupBoxData.name,
                 lootboxData: {
-                    name: groupBoxData.name,
-                    items: groupBoxData.items,
-                    chestImage: groupBoxData.chestImage
+                    name: groupBoxData.groupBoxName || groupBoxData.name,
+                    items: groupBoxData.lootboxData?.items || groupBoxData.items,
+                    chestImage: groupBoxData.lootboxData?.chestImage || groupBoxData.chestImage
                 },
-                settings: groupBoxData.groupBoxData.settings,
-                createdBy: groupBoxData.groupBoxData.createdBy,
-                creatorName: groupBoxData.groupBoxData.creatorName,
-                totalOpens: groupBoxData.groupBoxData.totalOpens || 0,
-                uniqueUsers: groupBoxData.groupBoxData.uniqueUsers || 0,
-                firstParticipated: new Date(),
-                lastParticipated: new Date(),
-                userTotalOpens: groupBoxData.spins || 0,
-                userRemainingTries: groupBoxData.remainingTries
+                settings: groupBoxData.settings,
+                createdBy: groupBoxData.createdBy,
+                creatorName: groupBoxData.creatorName,
+                totalOpens: groupBoxData.totalOpens || 0,
+                uniqueUsers: groupBoxData.uniqueUsers || 0,
+                firstParticipated: groupBoxData.firstParticipated || new Date(),
+                lastParticipated: groupBoxData.lastParticipated || new Date(),
+                userTotalOpens: groupBoxData.userTotalOpens || groupBoxData.spins || 0,
+                userRemainingTries: groupBoxData.userRemainingTries || groupBoxData.remainingTries
             };
 
             await setDoc(participatedRef, participatedData, { merge: true });
