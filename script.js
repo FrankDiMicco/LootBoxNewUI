@@ -918,8 +918,8 @@ class LootboxApp {
         document.getElementById('hideContents').checked = true;
         document.getElementById('hideOdds').checked = true;
         
-        // Close share modal and show group box modal
-        this.closeShareModal();
+        // Hide share modal and show group box modal (preserve sharingLootboxIndex)
+        document.getElementById('shareModal').classList.remove('show');
         document.getElementById('groupBoxModal').classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -933,6 +933,8 @@ class LootboxApp {
     closeGroupBoxModal() {
         document.getElementById('groupBoxModal').classList.remove('show');
         document.body.style.overflow = '';
+        // Clear the sharing index when user cancels group box creation
+        this.sharingLootboxIndex = undefined;
     }
 
     async createGroupBox() {

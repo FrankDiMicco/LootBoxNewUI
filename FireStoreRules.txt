@@ -10,13 +10,14 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid;
     }
 
-    // NEW: Group boxes rules
     match /group_boxes/{groupBoxId} {
       // Anyone can read group boxes (for sharing)
       allow read: if true;
-      
-      // Only creators can create/update/delete their group boxes
-      allow create, update, delete: if request.auth != null 
+
+      // Split create vs update/delete rules
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.createdBy;
+      allow update, delete: if request.auth != null 
                     && request.auth.uid == resource.data.createdBy;
       
       // Sub-collection: opens (anyone can read/create opens)
