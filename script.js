@@ -320,8 +320,16 @@ class LootboxApp {
         
         // Sort lootboxes by most recently used first, keeping track of original indices
         const indexedLootboxes = filteredLootboxes.map((lootbox) => {
-            // Find original index in the full lootboxes array
-            const originalIndex = this.lootboxes.findIndex(lb => lb === lootbox);
+            let originalIndex = -1;
+            
+            if (lootbox.isGroupBox) {
+                // For Group Boxes, we don't need an originalIndex since we handle them differently
+                originalIndex = -1;
+            } else {
+                // Find original index in the full lootboxes array for personal lootboxes
+                originalIndex = this.lootboxes.findIndex(lb => lb === lootbox);
+            }
+            
             return {
                 lootbox,
                 originalIndex: originalIndex
@@ -329,6 +337,20 @@ class LootboxApp {
         });
         
         const sortedIndexedLootboxes = indexedLootboxes.sort((a, b) => {
+            // Get last used dates for comparison (handle different date fields for Group Boxes vs personal lootboxes)
+            const getLastUsedDate = (lootbox) => {
+                if (lootbox.isGroupBox) {
+                    // For Group Boxes, use lastParticipated or fallback to firstParticipated
+                    return lootbox.lastParticipated || lootbox.firstParticipated || null;
+                } else {
+                    // For personal lootboxes, use lastUsed
+                    return lootbox.lastUsed || null;
+                }
+            };
+            
+            const aLastUsed = getLastUsedDate(a.lootbox);
+            const bLastUsed = getLastUsedDate(b.lootbox);
+            
             // If filtering by favorites, prioritize favorites first
             if (this.currentFilter === 'favorites') {
                 // First sort by favorite status (favorites first)
@@ -336,16 +358,16 @@ class LootboxApp {
                 if (!a.lootbox.favorite && b.lootbox.favorite) return 1;
                 
                 // Then sort by lastUsed within each group
-                if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
-                if (!a.lootbox.lastUsed) return 1;
-                if (!b.lootbox.lastUsed) return -1;
-                return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+                if (!aLastUsed && !bLastUsed) return 0;
+                if (!aLastUsed) return 1;
+                if (!bLastUsed) return -1;
+                return new Date(bLastUsed) - new Date(aLastUsed);
             } else {
                 // Default sorting: just by most recent usage
-                if (!a.lootbox.lastUsed && !b.lootbox.lastUsed) return 0;
-                if (!a.lootbox.lastUsed) return 1;
-                if (!b.lootbox.lastUsed) return -1;
-                return new Date(b.lootbox.lastUsed) - new Date(a.lootbox.lastUsed);
+                if (!aLastUsed && !bLastUsed) return 0;
+                if (!aLastUsed) return 1;
+                if (!bLastUsed) return -1;
+                return new Date(bLastUsed) - new Date(aLastUsed);
             }
         });
         
