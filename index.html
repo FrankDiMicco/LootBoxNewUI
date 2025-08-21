@@ -162,6 +162,38 @@
         </div>
     </div>
 
+    <!-- Share Options Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content share-modal-content">
+            <div class="share-modal-header">
+                <h3>Share Options</h3>
+                <button class="close-btn" onclick="closeShareModal()">&times;</button>
+            </div>
+            <div class="share-modal-body">
+                <p>Choose how you want to share <strong id="shareLootboxName"></strong>:</p>
+                <div class="share-options">
+                    <button class="share-option-btn" onclick="shareAsLootbox()">
+                        <img src="assets/graphics/share.png" alt="Share" class="share-option-icon">
+                        <div class="share-option-content">
+                            <h4>Share Lootbox</h4>
+                            <p>Share as a personal lootbox that others can import</p>
+                        </div>
+                    </button>
+                    <button class="share-option-btn" onclick="shareAsGroupBox()">
+                        <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="share-option-icon">
+                        <div class="share-option-content">
+                            <h4>Group Box</h4>
+                            <p>Create a shared group box for collaborative use</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="share-modal-footer">
+                <button class="btn btn-secondary" onclick="closeShareModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Message -->
     <div id="successMessage" class="success-message">
         <div class="success-content">

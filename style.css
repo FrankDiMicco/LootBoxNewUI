@@ -505,6 +505,91 @@ body {
     justify-content: center;
 }
 
+/* Share Modal Styles */
+.share-modal-content {
+    max-width: 500px;
+}
+
+.share-modal-header {
+    padding: 25px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.share-modal-header h3 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+}
+
+.share-modal-body {
+    padding: 25px;
+}
+
+.share-modal-body p {
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.share-option-btn {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-align: left;
+}
+
+.share-option-btn:hover {
+    border-color: #1e3a8a;
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(30, 58, 138, 0.1);
+}
+
+.share-option-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.share-option-content h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 5px 0;
+}
+
+.share-option-content p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.share-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+}
+
 /* Success Message Styles */
 .success-message {
     position: fixed;

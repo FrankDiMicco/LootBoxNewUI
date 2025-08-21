@@ -837,19 +837,14 @@ class LootboxApp {
 
     shareLootbox(index) {
         const lootbox = this.lootboxes[index];
-        const data = encodeURIComponent(JSON.stringify(lootbox));
-        const url = `${window.location.origin}${window.location.pathname}?share=${data}`;
         
-        if (navigator.share) {
-            navigator.share({
-                title: `${lootbox.name} - Lootbox`,
-                url: url
-            });
-        } else {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Share link copied to clipboard!');
-            });
-        }
+        // Store the index for sharing functions
+        this.sharingLootboxIndex = index;
+        
+        // Show share options modal
+        document.getElementById('shareLootboxName').textContent = lootbox.name;
+        document.getElementById('shareModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
 
     async favoriteLootbox(index) {
@@ -860,6 +855,38 @@ class LootboxApp {
 
     toggleGroupBox(index) {
         alert('Group box features coming soon!');
+    }
+
+    shareAsLootbox() {
+        if (this.sharingLootboxIndex === undefined) return;
+        
+        const lootbox = this.lootboxes[this.sharingLootboxIndex];
+        const data = encodeURIComponent(JSON.stringify(lootbox));
+        const url = `${window.location.origin}${window.location.pathname}?share=${data}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: `${lootbox.name} - Lootbox`,
+                url: url
+            });
+        } else {
+            navigator.clipboard.writeText(url).then(() => {
+                this.showSuccessMessage('Share link copied to clipboard!');
+            });
+        }
+        
+        this.closeShareModal();
+    }
+
+    shareAsGroupBox() {
+        alert('Group Box creation coming soon!');
+        this.closeShareModal();
+    }
+
+    closeShareModal() {
+        document.getElementById('shareModal').classList.remove('show');
+        document.body.style.overflow = '';
+        this.sharingLootboxIndex = undefined;
     }
 
     filterLootboxes(filter) {
@@ -1127,6 +1154,18 @@ function clearHistory() {
     if (window.app) {
         app.clearHistory();
     }
+}
+
+function closeShareModal() {
+    app.closeShareModal();
+}
+
+function shareAsLootbox() {
+    app.shareAsLootbox();
+}
+
+function shareAsGroupBox() {
+    app.shareAsGroupBox();
 }
 
 // Initialize app
