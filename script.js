@@ -5,6 +5,7 @@ class LootboxApp {
         this.currentLootbox = null;
         this.editingIndex = -1;
         this.sessionHistory = [];
+        this.communityHistory = [];
         this.isOnCooldown = false;
         this.popupTimeout = null;
         this.selectedChestPath = null;
@@ -1086,8 +1087,9 @@ class LootboxApp {
         document.getElementById('lootboxView').classList.add('hidden');
         document.getElementById('listView').classList.remove('hidden');
         
-        // Clear session history when leaving lootbox view
+        // Clear session and community history when leaving lootbox view
         this.sessionHistory = [];
+        this.communityHistory = [];
         this.updateSessionDisplay();
         
         // Reset cooldown and hide popup when leaving lootbox view
@@ -1112,13 +1114,39 @@ class LootboxApp {
     }
 
     addToHistory(itemName) {
-        const historyEntry = {
-            item: itemName,
-            timestamp: new Date(),
-            lootboxName: this.currentLootbox.name
-        };
+        const isGroupBox = this.currentLootbox && this.currentLootbox.isGroupBox;
         
-        this.sessionHistory.unshift(historyEntry);
+        if (isGroupBox) {
+            // For Group Boxes, add to community history (this will be updated when we reload from Firebase)
+            const userId = window.firebaseAuth?.currentUser?.uid || 'anonymous';
+            const userName = userId === 'anonymous' ? 'Anonymous User' : `User ${userId.substring(0, 8)}`;
+            
+            const communityEntry = {
+                userId: userId,
+                userName: userName,
+                item: itemName,
+                timestamp: new Date(),
+                sessionId: Date.now().toString()
+            };
+            
+            // Add to local community history (will be at the top since it's most recent)
+            this.communityHistory.unshift(communityEntry);
+            
+            // Keep only the most recent 50 entries
+            if (this.communityHistory.length > 50) {
+                this.communityHistory = this.communityHistory.slice(0, 50);
+            }
+        } else {
+            // For personal lootboxes, add to session history
+            const historyEntry = {
+                item: itemName,
+                timestamp: new Date(),
+                lootboxName: this.currentLootbox.name
+            };
+            
+            this.sessionHistory.unshift(historyEntry);
+        }
+        
         this.updateSessionDisplay();
     }
 
@@ -1129,18 +1157,23 @@ class LootboxApp {
         
         if (!historyList || !totalPulls || !sessionStats) return;
         
+        // Check if this is a Group Box with community history
+        const isGroupBox = this.currentLootbox && this.currentLootbox.isGroupBox;
+        const historyData = isGroupBox ? this.communityHistory : this.sessionHistory;
+        
         // Update total pulls
-        totalPulls.textContent = this.sessionHistory.length;
+        totalPulls.textContent = historyData.length;
         
         // Generate item counts for stats
         const itemCounts = {};
-        this.sessionHistory.forEach(entry => {
+        historyData.forEach(entry => {
             itemCounts[entry.item] = (itemCounts[entry.item] || 0) + 1;
         });
         
         // Update stats section
+        const statsTitle = isGroupBox ? 'Community Pulls' : 'Session Pulls';
         sessionStats.innerHTML = `
-            <div class="stat-item">Total Pulls: <span id="totalPulls">${this.sessionHistory.length}</span></div>
+            <div class="stat-item">${statsTitle}: <span id="totalPulls">${historyData.length}</span></div>
         `;
         
         // Add item counts
@@ -1156,25 +1189,47 @@ class LootboxApp {
         // Update history list
         historyList.innerHTML = '';
         
-        if (this.sessionHistory.length === 0) {
-            historyList.innerHTML = '<div class="no-history">No pulls yet this session</div>';
+        if (historyData.length === 0) {
+            const noHistoryMessage = isGroupBox ? 'No community pulls yet' : 'No pulls yet this session';
+            historyList.innerHTML = `<div class="no-history">${noHistoryMessage}</div>`;
             return;
         }
         
         // Add history items
-        this.sessionHistory.forEach(entry => {
+        historyData.forEach(entry => {
             const historyItem = document.createElement('div');
             historyItem.className = 'history-item';
-            historyItem.innerHTML = `
-                <span class="history-item-name">You got: ${entry.item}</span>
-                <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
-            `;
+            
+            if (isGroupBox) {
+                // Show community format: "UserName got: ItemName"
+                historyItem.innerHTML = `
+                    <span class="history-item-name">${entry.userName} got: ${entry.item}</span>
+                    <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+                `;
+            } else {
+                // Show personal format: "You got: ItemName"
+                historyItem.innerHTML = `
+                    <span class="history-item-name">You got: ${entry.item}</span>
+                    <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+                `;
+            }
+            
             historyList.appendChild(historyItem);
         });
     }
 
     clearHistory() {
-        this.sessionHistory = [];
+        const isGroupBox = this.currentLootbox && this.currentLootbox.isGroupBox;
+        
+        if (isGroupBox) {
+            // For Group Boxes, clear community history (this is mainly for debugging)
+            this.communityHistory = [];
+            console.log('Cleared community history (debug only - this does not affect Firestore data)');
+        } else {
+            // For personal lootboxes, clear session history
+            this.sessionHistory = [];
+        }
+        
         this.updateSessionDisplay();
     }
 
@@ -1459,11 +1514,14 @@ class LootboxApp {
             // Save this group box to user's participated collection
             await this.saveParticipatedGroupBox(groupBoxLootbox);
 
+            // Load community history for this Group Box
+            await this.loadCommunityHistory(groupBoxId);
+
             // Set this as the current lootbox and open directly
             this.currentLootbox = groupBoxLootbox;
             this.currentLootboxIndex = -1; // Special index for group boxes
             
-            // Clear session history when opening a group box
+            // Clear personal session history when opening a group box (community history takes precedence)
             this.sessionHistory = [];
             
             // Reset cooldown
@@ -1721,6 +1779,44 @@ class LootboxApp {
         
         // Clear pending delete
         this.pendingDeleteGroupBoxId = undefined;
+    }
+
+    async loadCommunityHistory(groupBoxId) {
+        try {
+            if (!this.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                console.log('Firebase not available for loading community history');
+                this.communityHistory = [];
+                return;
+            }
+
+            const { collection, getDocs, orderBy, query, limit } = window.firebaseFunctions;
+            
+            // Query the opens collection for this group box, ordered by timestamp (most recent first)
+            const opensRef = collection(window.firebaseDb, 'group_boxes', groupBoxId, 'opens');
+            const q = query(opensRef, orderBy('timestamp', 'desc'), limit(50)); // Limit to 50 most recent opens
+            
+            const querySnapshot = await getDocs(q);
+            const communityHistory = [];
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                communityHistory.push({
+                    id: doc.id,
+                    userId: data.userId,
+                    userName: data.userName,
+                    item: data.item,
+                    timestamp: data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp),
+                    sessionId: data.sessionId
+                });
+            });
+            
+            this.communityHistory = communityHistory;
+            console.log(`Loaded ${communityHistory.length} community pulls for Group Box ${groupBoxId}`);
+            
+        } catch (error) {
+            console.error('Error loading community history:', error);
+            this.communityHistory = [];
+        }
     }
 }
 
