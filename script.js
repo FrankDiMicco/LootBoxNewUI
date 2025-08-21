@@ -279,11 +279,17 @@ class LootboxApp {
         const emptyState = document.getElementById('emptyState');
         
         // Filter lootboxes based on current filter
-        let filteredLootboxes = this.lootboxes;
-        if (this.currentFilter === 'favorites') {
-            filteredLootboxes = this.lootboxes.filter(lootbox => lootbox.favorite);
+        let filteredLootboxes = [];
+        if (this.currentFilter === 'all') {
+            // Show both personal lootboxes and participated group boxes
+            filteredLootboxes = [...this.lootboxes, ...this.participatedGroupBoxes];
+        } else if (this.currentFilter === 'favorites') {
+            // Show favorited personal lootboxes and favorited group boxes
+            const favoriteLootboxes = this.lootboxes.filter(lootbox => lootbox.favorite);
+            const favoriteGroupBoxes = this.participatedGroupBoxes.filter(groupBox => groupBox.favorite);
+            filteredLootboxes = [...favoriteLootboxes, ...favoriteGroupBoxes];
         } else if (this.currentFilter === 'shared') {
-            // Show participated group boxes for shared filter
+            // Show only participated group boxes for shared filter
             filteredLootboxes = this.participatedGroupBoxes;
         }
         
@@ -369,6 +375,9 @@ class LootboxApp {
                             <span>🎯 ${lootbox.totalOpens || 0} total opens</span>
                         </div>
                         <div class="lootbox-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); app.favoriteGroupBox('${lootbox.groupBoxId}')">
+                                <img src="${lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png'}" alt="Favorite" class="action-icon">
+                            </button>
                             <button class="action-btn" onclick="event.stopPropagation(); app.shareGroupBoxLink('${lootbox.groupBoxId}')">
                                 <img src="assets/graphics/share.png" alt="Share" class="action-icon">
                             </button>
@@ -1058,6 +1067,11 @@ class LootboxApp {
     }
 
     showListView() {
+        // Sync Group Box data if returning from a Group Box session
+        if (this.currentLootbox && this.currentLootbox.isGroupBox) {
+            this.syncParticipatedGroupBoxData();
+        }
+        
         document.getElementById('lootboxView').classList.add('hidden');
         document.getElementById('listView').classList.remove('hidden');
         
@@ -1565,6 +1579,77 @@ class LootboxApp {
             navigator.clipboard.writeText(groupBoxUrl).then(() => {
                 this.showSuccessMessage('Group Box link copied to clipboard!');
             });
+        }
+    }
+
+    syncParticipatedGroupBoxData() {
+        if (!this.currentLootbox || !this.currentLootbox.isGroupBox) return;
+        
+        // Find and update the participated group box in local array
+        const groupBoxIndex = this.participatedGroupBoxes.findIndex(
+            gb => gb.groupBoxId === this.currentLootbox.groupBoxId
+        );
+        
+        if (groupBoxIndex >= 0) {
+            // Update the local data with current session data
+            this.participatedGroupBoxes[groupBoxIndex].userTotalOpens = this.currentLootbox.spins;
+            this.participatedGroupBoxes[groupBoxIndex].userRemainingTries = this.currentLootbox.remainingTries;
+            this.participatedGroupBoxes[groupBoxIndex].lastParticipated = new Date();
+            
+            // Update localStorage backup
+            try {
+                localStorage.setItem('participatedGroupBoxes', JSON.stringify(this.participatedGroupBoxes));
+            } catch (error) {
+                console.error('Error updating participated group boxes in localStorage:', error);
+            }
+            
+            console.log('Synced Group Box data:', this.currentLootbox.name, 
+                       'Opens:', this.currentLootbox.spins, 
+                       'Remaining:', this.currentLootbox.remainingTries);
+        }
+    }
+
+    async favoriteGroupBox(groupBoxId) {
+        // Find the group box in the participated array
+        const groupBoxIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxId);
+        
+        if (groupBoxIndex >= 0) {
+            // Toggle favorite status
+            this.participatedGroupBoxes[groupBoxIndex].favorite = !this.participatedGroupBoxes[groupBoxIndex].favorite;
+            
+            try {
+                // Update in Firebase
+                if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
+                    const currentUser = window.firebaseAuth.currentUser;
+                    if (currentUser) {
+                        const { doc, updateDoc } = window.firebaseFunctions;
+                        const participatedRef = doc(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes', groupBoxId);
+                        
+                        await updateDoc(participatedRef, {
+                            favorite: this.participatedGroupBoxes[groupBoxIndex].favorite
+                        });
+                        
+                        console.log('Updated Group Box favorite status in Firebase:', groupBoxId);
+                    }
+                }
+                
+                // Update localStorage backup
+                localStorage.setItem('participatedGroupBoxes', JSON.stringify(this.participatedGroupBoxes));
+                
+                // Re-render to update the favorite icon
+                this.renderLootboxes();
+                
+                // Show feedback message
+                const groupBoxName = this.participatedGroupBoxes[groupBoxIndex].groupBoxName || this.participatedGroupBoxes[groupBoxIndex].lootboxData?.name;
+                const action = this.participatedGroupBoxes[groupBoxIndex].favorite ? 'added to' : 'removed from';
+                this.showSuccessMessage(`${groupBoxName} ${action} favorites!`);
+                
+            } catch (error) {
+                console.error('Error updating Group Box favorite status:', error);
+                // Revert the change on error
+                this.participatedGroupBoxes[groupBoxIndex].favorite = !this.participatedGroupBoxes[groupBoxIndex].favorite;
+                this.showSuccessMessage('Error updating favorite status', true);
+            }
         }
     }
 }
