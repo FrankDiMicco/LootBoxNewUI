@@ -13,7 +13,7 @@ body {
 }
 
 .header {
-    background: rgba(15, 23, 42, 0.95);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
     position: sticky;
@@ -33,7 +33,7 @@ body {
 .title {
     font-size: 20px;
     font-weight: 700;
-    color: white;
+    color: #d1d5db;
 }
 
 .hamburger-menu {
@@ -46,15 +46,26 @@ body {
     justify-content: space-between;
     width: 24px;
     height: 18px;
+    transition: all 0.3s ease;
 }
 
 .hamburger-menu span {
     display: block;
     height: 2px;
-    width: 100%;
+    width: 18px;
     background: white;
     border-radius: 1px;
     transition: all 0.3s ease;
+    margin: 1px 0;
+}
+
+.hamburger-menu:hover span {
+    background: #e5e7eb;
+    transform: scaleX(1.1);
+}
+
+.hamburger-menu:hover {
+    transform: scale(1.05);
 }
 
 .container {
