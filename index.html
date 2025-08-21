@@ -85,6 +85,7 @@
                 <div class="form-group">
                     <label class="form-label">Lootbox Name</label>
                     <input type="text" id="lootboxName" class="form-input" placeholder="Enter lootbox name">
+                    <div id="nameError" class="error-message hidden">Please enter a lootbox name</div>
                 </div>
 
                 <div class="form-group">
@@ -122,6 +123,7 @@
                     <div id="itemsList">
                         <!-- Items will be added here -->
                     </div>
+                    <div id="itemsError" class="error-message hidden">Must have at least one item</div>
                     <div class="odds-total">
                         <button class="even-odds-btn" onclick="evenlyDistributeOdds()" title="Evenly distribute odds across all items">Equalize</button>
                         <button class="even-odds-btn" onclick="randomizeOdds()" title="Randomly distribute odds across all items">Randomize</button>

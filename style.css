@@ -353,6 +353,26 @@ body {
     border-color: #1e3a8a;
 }
 
+.form-input.error {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+}
+
+.form-input.error:focus {
+    border-color: #dc2626;
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 14px;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+.error-message.hidden {
+    display: none;
+}
+
 .checkbox-group {
     display: flex;
     align-items: center;

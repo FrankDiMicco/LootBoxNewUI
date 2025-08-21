@@ -698,11 +698,15 @@ class LootboxApp {
     }
 
     showEditModal() {
+        // Clear any existing validation errors when opening modal
+        this.clearValidationErrors();
         document.getElementById('editModal').classList.add('show');
         document.body.style.overflow = 'hidden';
     }
 
     closeModal() {
+        // Clear validation errors when closing modal
+        this.clearValidationErrors();
         document.getElementById('editModal').classList.remove('show');
         document.body.style.overflow = '';
     }
@@ -787,14 +791,16 @@ class LootboxApp {
     }
 
     async saveLootbox() {
-        // Check if modal is open (indicates user action from Save button)
-        const modal = document.getElementById('editModal');
-        const showAlerts = modal && modal.classList.contains('show');
+        // Clear any existing errors
+        this.clearValidationErrors();
         
+        let hasErrors = false;
+        
+        // Validate lootbox name
         const name = document.getElementById('lootboxName').value.trim();
         if (!name) {
-            if (showAlerts) alert('Please enter a lootbox name');
-            return;
+            this.showValidationError('lootboxName', 'nameError');
+            hasErrors = true;
         }
 
         // Collect items
@@ -813,8 +819,14 @@ class LootboxApp {
             }
         });
 
+        // Validate items
         if (items.length === 0) {
-            if (showAlerts) alert('Please add at least one item');
+            this.showValidationError(null, 'itemsError');
+            hasErrors = true;
+        }
+        
+        // If there are errors, don't save
+        if (hasErrors) {
             return;
         }
 
@@ -1842,6 +1854,32 @@ class LootboxApp {
             console.error('Error loading community history:', error);
             this.communityHistory = [];
         }
+    }
+
+    showValidationError(inputId, errorId) {
+        // Add error class to input field if provided
+        if (inputId) {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.classList.add('error');
+            }
+        }
+        
+        // Show error message
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+            errorElement.classList.remove('hidden');
+        }
+    }
+
+    clearValidationErrors() {
+        // Remove error classes from all inputs
+        const inputs = document.querySelectorAll('.form-input');
+        inputs.forEach(input => input.classList.remove('error'));
+        
+        // Hide all error messages
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(error => error.classList.add('hidden'));
     }
 }
 
