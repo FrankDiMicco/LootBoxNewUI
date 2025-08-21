@@ -13,27 +13,48 @@ body {
 }
 
 .header {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(10px);
-    padding: 20px;
+    padding: 12px 20px;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {
     max-width: 900px;
     margin: 0 auto;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 15px;
 }
 
 .title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
-    color: #1e3a8a;
+    color: white;
+}
+
+.hamburger-menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 24px;
+    height: 18px;
+}
+
+.hamburger-menu span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: white;
+    border-radius: 1px;
+    transition: all 0.3s ease;
 }
 
 .container {
@@ -245,11 +266,6 @@ body {
     z-index: 100;
 }
 
-.menu-btn {
-    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-    bottom: 30px;
-    left: 30px;
-}
 
 .add-btn {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);

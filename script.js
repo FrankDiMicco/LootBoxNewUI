@@ -1144,7 +1144,7 @@ class LootboxApp {
     }
 
     showMenu() {
-        alert('Menu clicked - implement features like export, import, settings, etc.');
+        console.log('Hamburger menu clicked - implement features like export, import, settings, etc.');
     }
 
     addToHistory(itemName) {
