@@ -173,6 +173,58 @@ body {
     opacity: 1;
 }
 
+/* Group Box Card Styling */
+.group-box-card {
+    border: 2px solid #8b5cf6;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+    position: relative;
+}
+
+.group-box-card:hover {
+    border-color: #7c3aed;
+    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3);
+}
+
+.group-box-badge {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 0 18px 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+}
+
+.group-box-icon {
+    width: 12px;
+    height: 12px;
+    filter: brightness(0) invert(1);
+}
+
+.group-box-community-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #8b5cf6;
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.group-box-community-stats span {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .bottom-nav {
     position: fixed;
     bottom: 0;

@@ -1,6 +1,7 @@
 class LootboxApp {
     constructor() {
         this.lootboxes = [];
+        this.participatedGroupBoxes = [];
         this.currentLootbox = null;
         this.editingIndex = -1;
         this.sessionHistory = [];
@@ -42,11 +43,16 @@ class LootboxApp {
                     this.lootboxes = await this.loadLootboxes();
                     console.log(`Loaded ${this.lootboxes.length} lootboxes`);
                     
+                    // Load participated group boxes
+                    this.participatedGroupBoxes = await this.loadParticipatedGroupBoxes();
+                    console.log(`Loaded ${this.participatedGroupBoxes.length} participated group boxes`);
+                    
                     // Migrate old chest paths
                     this.migrateChestPaths();
                 } catch (error) {
                     console.error('Error loading lootboxes:', error);
                     this.lootboxes = [];
+                    this.participatedGroupBoxes = [];
                 }
                 
                 // Add default lootbox if none exist
@@ -277,8 +283,8 @@ class LootboxApp {
         if (this.currentFilter === 'favorites') {
             filteredLootboxes = this.lootboxes.filter(lootbox => lootbox.favorite);
         } else if (this.currentFilter === 'shared') {
-            // Since group box loading isn't built yet, always show empty for shared
-            filteredLootboxes = [];
+            // Show participated group boxes for shared filter
+            filteredLootboxes = this.participatedGroupBoxes;
         }
         
         if (filteredLootboxes.length === 0) {
@@ -337,41 +343,77 @@ class LootboxApp {
         });
         
         grid.innerHTML = sortedIndexedLootboxes.map(({lootbox, originalIndex}) => {
-            // Migrate old chest paths to new location
-            let chestImage = lootbox.chestImage || 'chests/chest.png';
-            if (chestImage.includes('chests/OwnedChests/')) {
-                chestImage = chestImage.replace('chests/OwnedChests/', 'chests/');
-            }
-            const favoriteIcon = lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png';
-            return `
-            <div class="lootbox-card" onclick="app.openLootbox(${originalIndex})">
-                <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
-                <div class="lootbox-info">
-                    <h3>${lootbox.name}</h3>
-                    <div class="lootbox-stats">
-                        <span>Spins: ${lootbox.spins || 0}</span>
-                        <span>Used: ${lootbox.lastUsed ? this.timeAgo(lootbox.lastUsed) : 'Never'}</span>
+            // Handle Group Box vs Regular Lootbox rendering
+            if (lootbox.isGroupBox) {
+                // Group Box card rendering
+                let chestImage = lootbox.lootboxData?.chestImage || 'chests/chest.png';
+                if (chestImage.includes('chests/OwnedChests/')) {
+                    chestImage = chestImage.replace('chests/OwnedChests/', 'chests/');
+                }
+                
+                return `
+                <div class="lootbox-card group-box-card" onclick="app.openGroupBoxFromList('${lootbox.groupBoxId}')">
+                    <div class="group-box-badge">
+                        <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="group-box-icon">
+                        Group Box
                     </div>
-                    <div class="lootbox-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${originalIndex})">
-                            <img src="assets/graphics/settings_cog.png" alt="Edit" class="action-icon">
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${originalIndex})">
-                            <img src="assets/graphics/share.png" alt="Share" class="action-icon">
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.toggleGroupBox(${originalIndex})">
-                            <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="action-icon">
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${originalIndex})">
-                            <img src="${favoriteIcon}" alt="Favorite" class="action-icon">
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${originalIndex})">
-                            <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
-                        </button>
+                    <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
+                    <div class="lootbox-info">
+                        <h3>${lootbox.groupBoxName || lootbox.lootboxData?.name}</h3>
+                        <div class="lootbox-stats">
+                            <span>Your Opens: ${lootbox.userTotalOpens || 0}</span>
+                            <span>Tries Left: ${lootbox.userRemainingTries !== undefined ? lootbox.userRemainingTries : lootbox.settings?.triesPerPerson || 0}</span>
+                        </div>
+                        <div class="group-box-community-stats">
+                            <span>👥 ${lootbox.uniqueUsers || 0} users</span>
+                            <span>🎯 ${lootbox.totalOpens || 0} total opens</span>
+                        </div>
+                        <div class="lootbox-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); app.shareGroupBoxLink('${lootbox.groupBoxId}')">
+                                <img src="assets/graphics/share.png" alt="Share" class="action-icon">
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            `;
+                `;
+            } else {
+                // Regular lootbox card rendering
+                let chestImage = lootbox.chestImage || 'chests/chest.png';
+                if (chestImage.includes('chests/OwnedChests/')) {
+                    chestImage = chestImage.replace('chests/OwnedChests/', 'chests/');
+                }
+                const favoriteIcon = lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png';
+                
+                return `
+                <div class="lootbox-card" onclick="app.openLootbox(${originalIndex})">
+                    <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
+                    <div class="lootbox-info">
+                        <h3>${lootbox.name}</h3>
+                        <div class="lootbox-stats">
+                            <span>Spins: ${lootbox.spins || 0}</span>
+                            <span>Used: ${lootbox.lastUsed ? this.timeAgo(lootbox.lastUsed) : 'Never'}</span>
+                        </div>
+                        <div class="lootbox-actions">
+                            <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${originalIndex})">
+                                <img src="assets/graphics/settings_cog.png" alt="Edit" class="action-icon">
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); app.shareLootbox(${originalIndex})">
+                                <img src="assets/graphics/share.png" alt="Share" class="action-icon">
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); app.toggleGroupBox(${originalIndex})">
+                                <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="action-icon">
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); app.favoriteLootbox(${originalIndex})">
+                                <img src="${favoriteIcon}" alt="Favorite" class="action-icon">
+                            </button>
+                            <button class="action-btn" onclick="event.stopPropagation(); app.deleteLootbox(${originalIndex})">
+                                <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
         }).join('');
     }
 
@@ -1212,6 +1254,113 @@ class LootboxApp {
         }
     }
 
+    async loadParticipatedGroupBoxes() {
+        // Try to load from Firebase first, fallback to localStorage
+        if (this.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
+            try {
+                const currentUser = window.firebaseAuth.currentUser;
+                if (currentUser) {
+                    const { collection, getDocs } = window.firebaseFunctions;
+                    const participatedRef = collection(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes');
+                    const querySnapshot = await getDocs(participatedRef);
+                    const participatedGroupBoxes = [];
+                    
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        participatedGroupBoxes.push({ 
+                            id: doc.id, 
+                            ...data,
+                            isGroupBox: true
+                        });
+                    });
+                    
+                    console.log(`Loaded ${participatedGroupBoxes.length} participated group boxes from Firebase`);
+                    
+                    // Also save to localStorage as backup
+                    localStorage.setItem('participatedGroupBoxes', JSON.stringify(participatedGroupBoxes));
+                    
+                    return participatedGroupBoxes;
+                }
+            } catch (error) {
+                console.error('Error loading participated group boxes from Firebase:', error);
+            }
+        }
+        
+        // Fallback to localStorage
+        try {
+            const saved = localStorage.getItem('participatedGroupBoxes');
+            const participatedGroupBoxes = saved ? JSON.parse(saved) : [];
+            console.log(`Loaded ${participatedGroupBoxes.length} participated group boxes from localStorage`);
+            return participatedGroupBoxes;
+        } catch (error) {
+            console.error('Error loading participated group boxes from localStorage:', error);
+            return [];
+        }
+    }
+
+    async saveParticipatedGroupBox(groupBoxData) {
+        try {
+            if (!this.isFirebaseReady || !window.firebaseDb || !window.firebaseAuth || !window.firebaseFunctions) {
+                console.error('Firebase not available for saving participated group box');
+                return;
+            }
+
+            const currentUser = window.firebaseAuth.currentUser;
+            if (!currentUser) {
+                console.error('No authenticated user for saving participated group box');
+                return;
+            }
+
+            const { doc, setDoc } = window.firebaseFunctions;
+            const participatedRef = doc(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes', groupBoxData.groupBoxId);
+            
+            const participatedData = {
+                groupBoxId: groupBoxData.groupBoxId,
+                groupBoxName: groupBoxData.name,
+                lootboxData: {
+                    name: groupBoxData.name,
+                    items: groupBoxData.items,
+                    chestImage: groupBoxData.chestImage
+                },
+                settings: groupBoxData.groupBoxData.settings,
+                createdBy: groupBoxData.groupBoxData.createdBy,
+                creatorName: groupBoxData.groupBoxData.creatorName,
+                totalOpens: groupBoxData.groupBoxData.totalOpens || 0,
+                uniqueUsers: groupBoxData.groupBoxData.uniqueUsers || 0,
+                firstParticipated: new Date(),
+                lastParticipated: new Date(),
+                userTotalOpens: groupBoxData.spins || 0,
+                userRemainingTries: groupBoxData.remainingTries
+            };
+
+            await setDoc(participatedRef, participatedData, { merge: true });
+            
+            // Update local array
+            const existingIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxData.groupBoxId);
+            if (existingIndex >= 0) {
+                this.participatedGroupBoxes[existingIndex] = { 
+                    id: groupBoxData.groupBoxId, 
+                    ...participatedData,
+                    isGroupBox: true
+                };
+            } else {
+                this.participatedGroupBoxes.push({ 
+                    id: groupBoxData.groupBoxId, 
+                    ...participatedData,
+                    isGroupBox: true
+                });
+            }
+            
+            // Save to localStorage as backup
+            localStorage.setItem('participatedGroupBoxes', JSON.stringify(this.participatedGroupBoxes));
+            
+            console.log('Successfully saved participated group box:', groupBoxData.name);
+            
+        } catch (error) {
+            console.error('Error saving participated group box:', error);
+        }
+    }
+
     async loadAndOpenGroupBox(groupBoxId) {
         try {
             if (!this.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
@@ -1281,6 +1430,9 @@ class LootboxApp {
                 groupBoxId: groupBoxId,
                 groupBoxData: groupBoxData
             };
+
+            // Save this group box to user's participated collection
+            await this.saveParticipatedGroupBox(groupBoxLootbox);
 
             // Set this as the current lootbox and open directly
             this.currentLootbox = groupBoxLootbox;
@@ -1393,6 +1545,26 @@ class LootboxApp {
             
         } catch (error) {
             console.error('Error saving Group Box spin:', error);
+        }
+    }
+
+    async openGroupBoxFromList(groupBoxId) {
+        // Reuse the existing loadAndOpenGroupBox functionality
+        await this.loadAndOpenGroupBox(groupBoxId);
+    }
+
+    shareGroupBoxLink(groupBoxId) {
+        const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${groupBoxId}`;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: 'Group Box - Lootbox Creator',
+                url: groupBoxUrl
+            });
+        } else {
+            navigator.clipboard.writeText(groupBoxUrl).then(() => {
+                this.showSuccessMessage('Group Box link copied to clipboard!');
+            });
         }
     }
 }
