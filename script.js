@@ -1042,6 +1042,7 @@ class LootboxApp {
         // Reset form to defaults
         document.getElementById('triesPerPerson').value = 3;
         document.getElementById('expiresIn').value = '24';
+        document.getElementById('creatorParticipates').checked = true;
         document.getElementById('hideContents').checked = true;
         document.getElementById('hideOdds').checked = true;
         
@@ -1099,6 +1100,9 @@ class LootboxApp {
                 ? null 
                 : new Date(Date.now() + Number(expiresValue) * 60 * 60 * 1000);
             
+            // Get creator participation setting
+            const creatorParticipates = Boolean(document.getElementById('creatorParticipates').checked);
+            
             // Prepare group box data with all required fields properly set
             const groupBoxData = {
                 createdBy: currentUser.uid, // Required by Firestore rules
@@ -1111,6 +1115,7 @@ class LootboxApp {
                 settings: {
                     triesPerPerson: Number(document.getElementById('triesPerPerson').value) || 1,
                     expiresAt: expiresAt,
+                    creatorParticipates: creatorParticipates,
                     hideContents: Boolean(document.getElementById('hideContents').checked),
                     hideOdds: Boolean(document.getElementById('hideOdds').checked)
                 },
@@ -1139,30 +1144,33 @@ class LootboxApp {
             // Generate shareable link
             const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
             
-            // Create the participated group box entry for the creator
-            const participatedGroupBox = {
-                groupBoxId: docRef.id,
-                groupBoxName: groupBoxName,
-                lootboxData: {
-                    name: groupBoxName,
-                    items: lootbox.items,
-                    chestImage: lootbox.chestImage
-                },
-                settings: groupBoxData.settings,
-                createdBy: currentUser.uid,
-                creatorName: `User ${currentUser.uid.substring(0, 8)}`,
-                totalOpens: 0,
-                uniqueUsers: 0,
-                firstParticipated: new Date(),
-                lastParticipated: new Date(),
-                userTotalOpens: 0,
-                userRemainingTries: groupBoxData.settings.triesPerPerson,
-                favorite: false,
-                isGroupBox: true
-            };
-            
-            // Add to participated group boxes collection
-            await this.saveParticipatedGroupBox(participatedGroupBox);
+            // Only add to participated group boxes if creator participates
+            if (creatorParticipates) {
+                // Create the participated group box entry for the creator
+                const participatedGroupBox = {
+                    groupBoxId: docRef.id,
+                    groupBoxName: groupBoxName,
+                    lootboxData: {
+                        name: groupBoxName,
+                        items: lootbox.items,
+                        chestImage: lootbox.chestImage
+                    },
+                    settings: groupBoxData.settings,
+                    createdBy: currentUser.uid,
+                    creatorName: `User ${currentUser.uid.substring(0, 8)}`,
+                    totalOpens: 0,
+                    uniqueUsers: 0,
+                    firstParticipated: new Date(),
+                    lastParticipated: new Date(),
+                    userTotalOpens: 0,
+                    userRemainingTries: groupBoxData.settings.triesPerPerson,
+                    favorite: false,
+                    isGroupBox: true
+                };
+                
+                // Add to participated group boxes collection
+                await this.saveParticipatedGroupBox(participatedGroupBox);
+            }
             
             // Immediately refresh the home screen and close modal
             this.renderLootboxes();
