@@ -11,6 +11,7 @@ class LootboxApp {
         this.selectedChestPath = null;
         this.currentFilter = 'all';
         this.isFirebaseReady = false;
+        this.isOrganizerReadonly = false;
         
         this.initializeApp();
     }
@@ -281,6 +282,19 @@ class LootboxApp {
         
         // Filter lootboxes based on current filter
         let filteredLootboxes = [];
+        
+        // Debug: Log what we're working with
+        console.log('renderLootboxes called with:', {
+            currentFilter: this.currentFilter,
+            personalLootboxes: this.lootboxes.length,
+            participatedGroupBoxes: this.participatedGroupBoxes.length,
+            groupBoxDetails: this.participatedGroupBoxes.map(gb => ({
+                name: gb.groupBoxName,
+                isOrganizerOnly: gb.isOrganizerOnly,
+                isCreator: gb.isCreator
+            }))
+        });
+        
         if (this.currentFilter === 'all') {
             // Show both personal lootboxes and participated group boxes
             filteredLootboxes = [...this.lootboxes, ...this.participatedGroupBoxes];
@@ -293,6 +307,8 @@ class LootboxApp {
             // Show only participated group boxes for shared filter
             filteredLootboxes = this.participatedGroupBoxes;
         }
+        
+        console.log('Filtered lootboxes count:', filteredLootboxes.length);
         
         if (filteredLootboxes.length === 0) {
             grid.style.display = 'none';
@@ -374,6 +390,14 @@ class LootboxApp {
         grid.innerHTML = sortedIndexedLootboxes.map(({lootbox, originalIndex}) => {
             // Handle Group Box vs Regular Lootbox rendering
             if (lootbox.isGroupBox) {
+                // Debug: Log Group Box being rendered
+                console.log('Rendering Group Box:', {
+                    name: lootbox.groupBoxName || lootbox.lootboxData?.name,
+                    isOrganizerOnly: lootbox.isOrganizerOnly,
+                    isCreator: lootbox.isCreator,
+                    userRemainingTries: lootbox.userRemainingTries
+                });
+                
                 // Group Box card rendering
                 let chestImage = lootbox.lootboxData?.chestImage || 'chests/chest.png';
                 if (chestImage.includes('chests/OwnedChests/')) {
@@ -477,9 +501,36 @@ class LootboxApp {
     renderLootboxView() {
         document.getElementById('lootboxTitle').textContent = this.currentLootbox.name;
         
+        // Check if organizer readonly mode and show banner
+        const lootboxView = document.querySelector('.lootbox-view');
+        let organizerBanner = document.getElementById('organizerBanner');
+        
+        if (this.isOrganizerReadonly) {
+            // Add banner if it doesn't exist
+            if (!organizerBanner) {
+                organizerBanner = document.createElement('div');
+                organizerBanner.id = 'organizerBanner';
+                organizerBanner.className = 'organizer-banner';
+                organizerBanner.innerHTML = `
+                    <div class="organizer-banner-content">
+                        <span class="organizer-icon">👤</span>
+                        <span class="organizer-text">Organizer view — opens disabled</span>
+                    </div>
+                `;
+                lootboxView.insertBefore(organizerBanner, lootboxView.children[2]); // Insert after title and tries info
+            }
+        } else {
+            // Remove banner if it exists
+            if (organizerBanner) {
+                organizerBanner.remove();
+            }
+        }
+        
         // Update tries info
         const triesInfo = document.getElementById('triesInfo');
-        if (this.currentLootbox.maxTries === "unlimited") {
+        if (this.isOrganizerReadonly) {
+            triesInfo.textContent = "Organizer - View Only";
+        } else if (this.currentLootbox.maxTries === "unlimited") {
             triesInfo.textContent = "Unlimited tries";
         } else {
             triesInfo.textContent = `Tries remaining: ${this.currentLootbox.remainingTries}`;
@@ -489,10 +540,27 @@ class LootboxApp {
         const openButton = document.getElementById('openButton');
         const circle = document.getElementById('lootboxCircle');
         
-        if (openButton) {
-            openButton.onclick = () => this.spinLootbox();
+        if (this.isOrganizerReadonly) {
+            // Disable opening in organizer readonly mode
+            if (openButton) {
+                openButton.onclick = null;
+                openButton.disabled = true;
+                openButton.style.pointerEvents = 'none';
+            }
+            circle.onclick = null;
+            circle.style.pointerEvents = 'none';
+            circle.classList.add('organizer-readonly');
         } else {
-            circle.onclick = () => this.spinLootbox();
+            // Normal functionality
+            if (openButton) {
+                openButton.onclick = () => this.spinLootbox();
+                openButton.disabled = false;
+                openButton.style.pointerEvents = 'auto';
+            } else {
+                circle.onclick = () => this.spinLootbox();
+            }
+            circle.style.pointerEvents = 'auto';
+            circle.classList.remove('organizer-readonly');
         }
         
         // Update chest image (migrate old paths)
@@ -517,9 +585,24 @@ class LootboxApp {
     }
 
     async spinLootbox() {
+        // Check if organizer readonly mode
+        if (this.isOrganizerReadonly) {
+            this.showToast('Organizer view — opens disabled');
+            return;
+        }
+
         // Check if on cooldown
         if (this.isOnCooldown) {
             return;
+        }
+
+        // Check if user is organizer-only for this group box
+        if (this.currentLootbox && this.currentLootbox.isGroupBox) {
+            const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === this.currentLootbox.groupBoxId);
+            if (groupBox && groupBox.isOrganizerOnly) {
+                this.showToast('You are the organizer of this Group Box and cannot participate in opens');
+                return;
+            }
         }
 
         // Check if can spin
@@ -1168,9 +1251,33 @@ class LootboxApp {
                 isGroupBox: true
             };
             
-            // Add to participated group boxes collection
-            await this.saveParticipatedGroupBox(participatedGroupBox);
+            // Debug log for participatedGroupBox creation
+            console.log('Creating participatedGroupBox:', {
+                groupBoxName: participatedGroupBox.groupBoxName,
+                creatorParticipates: creatorParticipates,
+                isOrganizerOnly: participatedGroupBox.isOrganizerOnly,
+                userRemainingTries: participatedGroupBox.userRemainingTries
+            });
             
+            // Add to local array immediately for instant UI update
+            const existingIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === docRef.id);
+            if (existingIndex >= 0) {
+                this.participatedGroupBoxes[existingIndex] = participatedGroupBox;
+            } else {
+                this.participatedGroupBoxes.push(participatedGroupBox);
+            }
+
+            // Save to Firebase/localStorage in background (async)
+            this.saveParticipatedGroupBox(participatedGroupBox);
+
+            // Debug: Log the local array after adding
+            console.log('Participated group boxes after adding:', this.participatedGroupBoxes.map(gb => ({
+                name: gb.groupBoxName,
+                isOrganizerOnly: gb.isOrganizerOnly,
+                isCreator: gb.isCreator,
+                id: gb.groupBoxId
+            })));
+
             // Immediately refresh the home screen and close modal
             this.renderLootboxes();
             this.closeGroupBoxModal();
@@ -1237,6 +1344,9 @@ class LootboxApp {
         if (popup) {
             popup.classList.remove('show');
         }
+        
+        // Reset organizer readonly flag
+        this.isOrganizerReadonly = false;
         
         this.currentLootbox = null;
         
@@ -1554,18 +1664,25 @@ class LootboxApp {
             
             // Update local array
             const existingIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxData.groupBoxId);
+            const newGroupBoxEntry = { 
+                id: groupBoxData.groupBoxId, 
+                ...participatedData,
+                isGroupBox: true
+            };
+            
+            console.log('saveParticipatedGroupBox - saving entry:', {
+                groupBoxId: groupBoxData.groupBoxId,
+                isOrganizerOnly: newGroupBoxEntry.isOrganizerOnly,
+                isCreator: newGroupBoxEntry.isCreator,
+                existingIndex: existingIndex
+            });
+            
             if (existingIndex >= 0) {
-                this.participatedGroupBoxes[existingIndex] = { 
-                    id: groupBoxData.groupBoxId, 
-                    ...participatedData,
-                    isGroupBox: true
-                };
+                this.participatedGroupBoxes[existingIndex] = newGroupBoxEntry;
+                console.log('Updated existing group box at index:', existingIndex);
             } else {
-                this.participatedGroupBoxes.push({ 
-                    id: groupBoxData.groupBoxId, 
-                    ...participatedData,
-                    isGroupBox: true
-                });
+                this.participatedGroupBoxes.push(newGroupBoxEntry);
+                console.log('Added new group box, total count:', this.participatedGroupBoxes.length);
             }
             
             // Save to localStorage as backup
@@ -1598,6 +1715,22 @@ class LootboxApp {
             }
 
             const groupBoxData = groupBoxSnap.data();
+            
+            // Step 2: Compute organizer-readonly flag
+            const currentUser = window.firebaseAuth.currentUser;
+            const isOrganizer = currentUser && (currentUser.uid === groupBoxData.createdBy);
+            const organizerReadonly = isOrganizer && groupBoxData.settings && groupBoxData.settings.creatorParticipates === false;
+            
+            // Save flag on app instance for this view
+            this.isOrganizerReadonly = organizerReadonly;
+            
+            console.log('Group Box organizer check:', {
+                currentUserId: currentUser?.uid,
+                createdBy: groupBoxData.createdBy,
+                isOrganizer: isOrganizer,
+                creatorParticipates: groupBoxData.settings?.creatorParticipates,
+                organizerReadonly: organizerReadonly
+            });
             
             // Check if group box has expired
             if (groupBoxData.settings.expiresAt && new Date(groupBoxData.settings.expiresAt.toDate()) < new Date()) {
@@ -1769,15 +1902,16 @@ class LootboxApp {
     }
 
     async openGroupBoxFromList(groupBoxId) {
-        // Check if user is organizer-only for this group box
+        // Debug log for openGroupBoxFromList call
         const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
-        if (groupBox && groupBox.isOrganizerOnly) {
-            // Show message for organizer-only creators
-            this.showToast('You are the organizer of this Group Box and cannot participate in opens');
-            return;
-        }
+        console.log('openGroupBoxFromList called:', {
+            groupBoxId: groupBoxId,
+            groupBoxName: groupBox?.groupBoxName,
+            isOrganizerOnly: groupBox?.isOrganizerOnly,
+            isCreator: groupBox?.isCreator
+        });
         
-        // Reuse the existing loadAndOpenGroupBox functionality
+        // Always navigate to group box screen - don't block navigation
         await this.loadAndOpenGroupBox(groupBoxId);
     }
 

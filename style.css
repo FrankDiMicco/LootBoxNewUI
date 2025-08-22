@@ -1189,6 +1189,62 @@ body {
     transform: translateY(-20px);
 }
 
+/* Organizer Banner */
+.organizer-banner {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    animation: fadeInSlide 0.5s ease-out;
+}
+
+.organizer-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.organizer-icon {
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+.organizer-text {
+    flex: 1;
+}
+
+.lootbox-circle.organizer-readonly {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+
+.lootbox-circle.organizer-readonly::after {
+    content: '🔒';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    pointer-events: none;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Desktop improvements */
 @media (min-width: 769px) {
     .chest-selection {
