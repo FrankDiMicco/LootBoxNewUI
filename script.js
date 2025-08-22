@@ -391,7 +391,7 @@ class LootboxApp {
                         <h3>${lootbox.groupBoxName || lootbox.lootboxData?.name}</h3>
                         <div class="lootbox-stats">
                             <span>Your Opens: ${lootbox.userTotalOpens || 0}</span>
-                            <span>Tries Left: ${lootbox.userRemainingTries !== undefined ? lootbox.userRemainingTries : lootbox.settings?.triesPerPerson || 0}</span>
+                            <span>${lootbox.isOrganizerOnly ? 'Status: Creator' : `Tries Left: ${lootbox.userRemainingTries !== undefined ? lootbox.userRemainingTries : lootbox.settings?.triesPerPerson || 0}`}</span>
                         </div>
                         <div class="group-box-community-stats">
                             <span>👥 ${lootbox.uniqueUsers || 0} users</span>
@@ -1144,33 +1144,32 @@ class LootboxApp {
             // Generate shareable link
             const groupBoxUrl = `${window.location.origin}${window.location.pathname}?groupbox=${docRef.id}`;
             
-            // Only add to participated group boxes if creator participates
-            if (creatorParticipates) {
-                // Create the participated group box entry for the creator
-                const participatedGroupBox = {
-                    groupBoxId: docRef.id,
-                    groupBoxName: groupBoxName,
-                    lootboxData: {
-                        name: groupBoxName,
-                        items: lootbox.items,
-                        chestImage: lootbox.chestImage
-                    },
-                    settings: groupBoxData.settings,
-                    createdBy: currentUser.uid,
-                    creatorName: `User ${currentUser.uid.substring(0, 8)}`,
-                    totalOpens: 0,
-                    uniqueUsers: 0,
-                    firstParticipated: new Date(),
-                    lastParticipated: new Date(),
-                    userTotalOpens: 0,
-                    userRemainingTries: groupBoxData.settings.triesPerPerson,
-                    favorite: false,
-                    isGroupBox: true
-                };
-                
-                // Add to participated group boxes collection
-                await this.saveParticipatedGroupBox(participatedGroupBox);
-            }
+            // Always add creator to participated group boxes (for visibility)
+            const participatedGroupBox = {
+                groupBoxId: docRef.id,
+                groupBoxName: groupBoxName,
+                lootboxData: {
+                    name: groupBoxName,
+                    items: lootbox.items,
+                    chestImage: lootbox.chestImage
+                },
+                settings: groupBoxData.settings,
+                createdBy: currentUser.uid,
+                creatorName: `User ${currentUser.uid.substring(0, 8)}`,
+                totalOpens: 0,
+                uniqueUsers: 0,
+                firstParticipated: new Date(),
+                lastParticipated: new Date(),
+                userTotalOpens: 0,
+                userRemainingTries: creatorParticipates ? groupBoxData.settings.triesPerPerson : 0,
+                isCreator: true, // Mark as creator
+                isOrganizerOnly: !creatorParticipates, // Mark if organizer-only
+                favorite: false,
+                isGroupBox: true
+            };
+            
+            // Add to participated group boxes collection
+            await this.saveParticipatedGroupBox(participatedGroupBox);
             
             // Immediately refresh the home screen and close modal
             this.renderLootboxes();
@@ -1546,7 +1545,9 @@ class LootboxApp {
                 firstParticipated: groupBoxData.firstParticipated || new Date(),
                 lastParticipated: groupBoxData.lastParticipated || new Date(),
                 userTotalOpens: groupBoxData.userTotalOpens || groupBoxData.spins || 0,
-                userRemainingTries: groupBoxData.userRemainingTries || groupBoxData.remainingTries
+                userRemainingTries: groupBoxData.userRemainingTries || groupBoxData.remainingTries,
+                isCreator: groupBoxData.isCreator || false,
+                isOrganizerOnly: groupBoxData.isOrganizerOnly || false
             };
 
             await setDoc(participatedRef, participatedData, { merge: true });
@@ -1768,6 +1769,14 @@ class LootboxApp {
     }
 
     async openGroupBoxFromList(groupBoxId) {
+        // Check if user is organizer-only for this group box
+        const groupBox = this.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
+        if (groupBox && groupBox.isOrganizerOnly) {
+            // Show message for organizer-only creators
+            this.showToast('You are the organizer of this Group Box and cannot participate in opens');
+            return;
+        }
+        
         // Reuse the existing loadAndOpenGroupBox functionality
         await this.loadAndOpenGroupBox(groupBoxId);
     }
