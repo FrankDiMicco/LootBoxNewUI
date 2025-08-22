@@ -1350,7 +1350,7 @@ class LootboxApp {
         
         this.currentLootbox = null;
         
-        // Re-render lootboxes to update sorting after potential usage
+        // Refresh the lootbox list to ensure group boxes are visible
         this.renderLootboxes();
     }
 
