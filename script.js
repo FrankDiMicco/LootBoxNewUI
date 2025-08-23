@@ -1801,7 +1801,7 @@ const participatedGroupBoxData = {
     isGroupBox: true
 };
 
-// Add to local array immediately for instant UI update
+// Add to local array immediately for instant UI update. 
 const existingIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxId);
 if (existingIndex >= 0) {
     // Update existing entry but preserve favorite status
