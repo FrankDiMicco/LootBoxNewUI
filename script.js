@@ -1765,25 +1765,54 @@ class LootboxApp {
             }
 
             // Create a temporary lootbox object from the group box data
-            const groupBoxLootbox = {
-                name: groupBoxData.lootboxData.name,
-                items: groupBoxData.lootboxData.items,
-                chestImage: groupBoxData.lootboxData.chestImage || 'chests/chest.png',
-                revealContents: !groupBoxData.settings.hideContents,
-                revealOdds: !groupBoxData.settings.hideOdds,
-                maxTries: groupBoxData.settings.triesPerPerson,
-                remainingTries: remainingTries,
-                spins: totalOpens,
-                lastUsed: new Date().toISOString(),
-                favorite: false,
-                isGroupBox: true,
-                groupBoxId: groupBoxId,
-                groupBoxData: groupBoxData
-            };
+const groupBoxLootbox = {
+    name: groupBoxData.lootboxData.name,
+    items: groupBoxData.lootboxData.items,
+    chestImage: groupBoxData.lootboxData.chestImage || 'chests/chest.png',
+    revealContents: !groupBoxData.settings.hideContents,
+    revealOdds: !groupBoxData.settings.hideOdds,
+    maxTries: groupBoxData.settings.triesPerPerson,
+    remainingTries: remainingTries,
+    spins: totalOpens,
+    lastUsed: new Date().toISOString(),
+    favorite: false,
+    isGroupBox: true,
+    groupBoxId: groupBoxId,
+    groupBoxData: groupBoxData
+};
 
-            // Save this group box to user's participated collection
-            await this.saveParticipatedGroupBox(groupBoxLootbox);
+// Prepare complete group box data for saving to participated collection
+const participatedGroupBoxData = {
+    groupBoxId: groupBoxId,
+    groupBoxName: groupBoxData.lootboxData.name,
+    lootboxData: groupBoxData.lootboxData,
+    settings: groupBoxData.settings,
+    createdBy: groupBoxData.createdBy,
+    creatorName: groupBoxData.creatorName || `User ${groupBoxData.createdBy.substring(0, 8)}`,
+    totalOpens: groupBoxData.totalOpens || 0,
+    uniqueUsers: groupBoxData.uniqueUsers || 0,
+    firstParticipated: new Date(),
+    lastParticipated: new Date(),
+    userTotalOpens: totalOpens,
+    userRemainingTries: remainingTries,
+    isCreator: currentUser && (currentUser.uid === groupBoxData.createdBy),
+    isOrganizerOnly: currentUser && (currentUser.uid === groupBoxData.createdBy) && !groupBoxData.settings.creatorParticipates,
+    favorite: false,
+    isGroupBox: true
+};
 
+// Add to local array immediately for instant UI update
+const existingIndex = this.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxId);
+if (existingIndex >= 0) {
+    // Update existing entry but preserve favorite status
+    participatedGroupBoxData.favorite = this.participatedGroupBoxes[existingIndex].favorite || false;
+    this.participatedGroupBoxes[existingIndex] = participatedGroupBoxData;
+} else {
+    this.participatedGroupBoxes.push(participatedGroupBoxData);
+}
+
+// Save to Firebase and localStorage
+await this.saveParticipatedGroupBox(participatedGroupBoxData);
             // Load community history for this Group Box
             await this.loadCommunityHistory(groupBoxId);
 
