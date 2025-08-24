@@ -131,6 +131,7 @@ const UIRenderer = {
                 
                 return `
                 <div class="lootbox-card group-box-card${lootbox.isOrganizerOnly ? ' organizer-only' : ''}" onclick="app.openGroupBoxFromList('${lootbox.groupBoxId}')">
+                    ${(lootbox.userTotalOpens || 0) === 0 && !lootbox.isOrganizerOnly ? '<div class="new-box-badge"><span class="new-box-label">New Box</span></div>' : ''}
                     <div class="group-box-badge">
                         <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="group-box-icon">
                         Group Box
