@@ -729,6 +729,9 @@ const GroupBoxExtension = {
     }
 };
 
+// Make available globally first
+window.GroupBoxExtension = GroupBoxExtension;
+// Then extend app if it exists
 if (window.app) {
     Object.assign(window.app, GroupBoxExtension);
 }
