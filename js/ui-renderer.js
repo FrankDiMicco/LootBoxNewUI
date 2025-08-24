@@ -80,15 +80,16 @@ const UIRenderer = {
         const sortedIndexedLootboxes = indexedLootboxes.sort((a, b) => {
             // Get last used dates for comparison (handle different date fields for Group Boxes vs personal lootboxes)
             const getLastUsedDate = (lootbox) => {
-                if (lootbox.isGroupBox) {
-                    // For Group Boxes, use lastParticipated, or fallback to firstParticipated (creation time)
-                    // This ensures newly created Group Boxes appear at the top even if never opened
-                    return lootbox.lastParticipated || lootbox.firstParticipated || null;
-                } else {
-                    // For personal lootboxes, use lastUsed
-                    return lootbox.lastUsed || null;
-                }
-            };
+    if (lootbox.isGroupBox) {
+        // For Group Boxes, use lastParticipated, fallback to firstParticipated
+        // Both will be the same for newly created Group Boxes, ensuring they appear at top
+        const lastDate = lootbox.lastParticipated || lootbox.firstParticipated;
+        return lastDate ? (lastDate.toDate ? lastDate.toDate() : new Date(lastDate)) : new Date(0);
+    } else {
+        // For personal lootboxes, use lastUsed
+        return lootbox.lastUsed ? new Date(lootbox.lastUsed) : new Date(0);
+    }
+};
             
             const aLastUsed = getLastUsedDate(a.lootbox);
             const bLastUsed = getLastUsedDate(b.lootbox);
