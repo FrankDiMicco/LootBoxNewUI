@@ -170,12 +170,12 @@ const UIRenderer = {
                 
                 return `
                 <div class="lootbox-card" onclick="app.openLootbox(${originalIndex})">
+                    ${(lootbox.spins || 0) === 0 ? '<div class="new-box-badge"><span class="new-box-label">New Box</span></div>' : ''}
                     <div class="lootbox-preview" style="background-image: url('${chestImage}')"></div>
                     <div class="lootbox-info">
                         <h3>${lootbox.name}</h3>
                         <div class="lootbox-stats">
-                            <span>Opens: ${lootbox.spins || 0}</span>
-                            <span>Used: ${lootbox.lastUsed ? window.app.timeAgo(lootbox.lastUsed) : 'Never'}</span>
+                            ${(lootbox.spins || 0) === 0 ? '' : `<span>Opens: ${lootbox.spins || 0}</span><span>Used: ${window.app.timeAgo(lootbox.lastUsed)}</span>`}
                         </div>
                         <div class="lootbox-actions">
                             <button class="action-btn" onclick="event.stopPropagation(); app.editLootbox(${originalIndex})">
