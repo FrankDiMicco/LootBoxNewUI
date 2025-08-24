@@ -1031,6 +1031,11 @@ body {
     display: none;
 }
 
+/* Hide add button when lootbox view is active */
+#lootboxView:not(.hidden) ~ .add-btn {
+    display: none !important;
+}
+
 /* Cooldown state for lootbox */
 .lootbox-circle.on-cooldown {
     opacity: 0.6;
