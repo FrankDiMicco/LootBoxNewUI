@@ -174,7 +174,7 @@ const UIRenderer = {
                     <div class="lootbox-info">
                         <h3>${lootbox.name}</h3>
                         <div class="lootbox-stats">
-                            <span>Spins: ${lootbox.spins || 0}</span>
+                            <span>Opens: ${lootbox.spins || 0}</span>
                             <span>Used: ${lootbox.lastUsed ? window.app.timeAgo(lootbox.lastUsed) : 'Never'}</span>
                         </div>
                         <div class="lootbox-actions">
