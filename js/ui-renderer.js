@@ -81,7 +81,8 @@ const UIRenderer = {
             // Get last used dates for comparison (handle different date fields for Group Boxes vs personal lootboxes)
             const getLastUsedDate = (lootbox) => {
                 if (lootbox.isGroupBox) {
-                    // For Group Boxes, use lastParticipated or fallback to firstParticipated
+                    // For Group Boxes, use lastParticipated, or fallback to firstParticipated (creation time)
+                    // This ensures newly created Group Boxes appear at the top even if never opened
                     return lootbox.lastParticipated || lootbox.firstParticipated || null;
                 } else {
                     // For personal lootboxes, use lastUsed
