@@ -234,6 +234,17 @@ body {
     box-shadow: 0 20px 40px rgba(139, 92, 246, 0.3);
 }
 
+/* Organizer-only Group Box Card Styling */
+.group-box-card.organizer-only {
+    border: 2px solid #f97316;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.group-box-card.organizer-only:hover {
+    border-color: #ea580c;
+    box-shadow: 0 20px 40px rgba(249, 115, 22, 0.3);
+}
+
 .group-box-badge {
     position: absolute;
     top: -1px;
@@ -248,6 +259,11 @@ body {
     align-items: center;
     gap: 4px;
     z-index: 10;
+}
+
+/* Orange badge for organizer-only group boxes */
+.group-box-card.organizer-only .group-box-badge {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
 
 .group-box-icon {

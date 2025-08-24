@@ -130,7 +130,7 @@ const UIRenderer = {
                 }
                 
                 return `
-                <div class="lootbox-card group-box-card" onclick="app.openGroupBoxFromList('${lootbox.groupBoxId}')">
+                <div class="lootbox-card group-box-card${lootbox.isOrganizerOnly ? ' organizer-only' : ''}" onclick="app.openGroupBoxFromList('${lootbox.groupBoxId}')">
                     <div class="group-box-badge">
                         <img src="assets/graphics/groupBoxImage.png" alt="Group Box" class="group-box-icon">
                         Group Box
