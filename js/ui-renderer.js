@@ -156,9 +156,9 @@ const UIRenderer = {
                             <button class="action-btn" onclick="event.stopPropagation(); app.favoriteGroupBox('${lootbox.groupBoxId}')">
                                 <img src="${lootbox.favorite ? 'assets/graphics/favorite_star.png' : 'assets/graphics/empty_favorite_star.png'}" alt="Favorite" class="action-icon">
                             </button>
-                            <button class="action-btn" onclick="event.stopPropagation(); app.shareGroupBoxLink('${lootbox.groupBoxId}')">
+                            ${lootbox.isCreator ? `<button class="action-btn" onclick="event.stopPropagation(); app.shareGroupBoxLink('${lootbox.groupBoxId}')">
                                 <img src="assets/graphics/share.png" alt="Share" class="action-icon">
-                            </button>
+                            </button>` : ''}
                             <button class="action-btn" onclick="event.stopPropagation(); app.deleteGroupBox('${lootbox.groupBoxId}')">
                                 <img src="assets/graphics/delete_x.png" alt="Delete" class="action-icon">
                             </button>
