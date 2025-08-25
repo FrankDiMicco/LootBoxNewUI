@@ -344,11 +344,21 @@ const UIRenderer = {
             historyItem.className = 'history-item';
             
             if (isGroupBox) {
-                // Show community format: "UserName got: ItemName"
-                historyItem.innerHTML = `
-                    <span class="history-item-name">${entry.userName} got: ${entry.item}</span>
-                    <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
-                `;
+                // Check if this is a leave event
+                if (entry.action === 'leave' || entry.item === null) {
+                    // Show leave format: "UserName has left the box."
+                    historyItem.innerHTML = `
+                        <span class="history-item-name leave-event">${entry.userName} has left the box.</span>
+                        <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+                    `;
+                    historyItem.classList.add('leave-history-item');
+                } else {
+                    // Show community format: "UserName got: ItemName"
+                    historyItem.innerHTML = `
+                        <span class="history-item-name">${entry.userName} got: ${entry.item}</span>
+                        <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+                    `;
+                }
             } else {
                 // Show personal format: "You got: ItemName"
                 historyItem.innerHTML = `

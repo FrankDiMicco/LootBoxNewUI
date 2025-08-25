@@ -1560,3 +1560,14 @@ body {
     border-radius: 8px;
     border: 1px solid #e2e8f0;
 }
+
+/* Leave event styling */
+.leave-history-item {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+}
+
+.leave-event {
+    color: #b91c1c;
+    font-style: italic;
+}

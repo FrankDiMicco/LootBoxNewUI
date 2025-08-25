@@ -656,11 +656,33 @@ const GroupBoxExtension = {
         app.closeDeleteModal();
         
         try {
-            // Delete from Firebase
+            // Record leave event in community history first
             if (app.isFirebaseReady && window.firebaseDb && window.firebaseAuth && window.firebaseFunctions) {
                 const currentUser = window.firebaseAuth.currentUser;
                 if (currentUser) {
-                    const { doc, deleteDoc } = window.firebaseFunctions;
+                    // Record leave event for community history
+                    const { collection, addDoc, doc, deleteDoc } = window.firebaseFunctions;
+                    const userId = currentUser.uid;
+                    const userName = userId === 'anonymous' ? 'Anonymous User' : `User ${userId.substring(0, 8)}`;
+                    
+                    // Don't record leave event for creators who are just removing their own organizer-only box
+                    const isOrganizerOnly = groupBox && groupBox.isOrganizerOnly && groupBox.isCreator;
+                    
+                    if (!isOrganizerOnly) {
+                        const leaveData = {
+                            userId: userId,
+                            userName: userName,
+                            item: null, // Special marker for leave events
+                            action: 'leave',
+                            timestamp: new Date(),
+                            sessionId: Date.now().toString()
+                        };
+                        
+                        await addDoc(collection(window.firebaseDb, 'group_boxes', groupBoxId, 'opens'), leaveData);
+                        console.log('Recorded leave event for:', userName);
+                    }
+                    
+                    // Delete from user's participated group boxes
                     const participatedRef = doc(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes', groupBoxId);
                     await deleteDoc(participatedRef);
                     console.log('Deleted Group Box from Firebase:', groupBoxId);
