@@ -150,7 +150,7 @@ const UIRenderer = {
                             <span>🎯 ${lootbox.totalOpens || 0} total opens</span>
                         </div>
                         <div class="lootbox-actions">
-                            ${lootbox.isCreator ? `<button class="action-btn" onclick="event.stopPropagation(); app.editGroupBox('${lootbox.groupBoxId}')">
+                            ${lootbox.isOrganizerOnly ? `<button class="action-btn" onclick="event.stopPropagation(); app.editGroupBox('${lootbox.groupBoxId}')">
                                 <img src="assets/graphics/settings_cog.png" alt="Edit" class="action-icon">
                             </button>` : ''}
                             <button class="action-btn" onclick="event.stopPropagation(); app.favoriteGroupBox('${lootbox.groupBoxId}')">
