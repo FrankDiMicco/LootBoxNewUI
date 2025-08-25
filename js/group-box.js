@@ -74,6 +74,7 @@ const GroupBoxExtension = {
             const groupBoxData = {
                 createdBy: currentUser.uid, // Required by Firestore rules
                 creatorName: `User ${currentUser.uid.substring(0, 8)}`, // Generate consistent creator name
+                organizerOnly: !creatorParticipates, // New field for query filtering
                 lootboxData: {
                     name: groupBoxName, // Use group box name, not lootbox name
                     items: lootbox.items,

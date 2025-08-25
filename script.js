@@ -1033,26 +1033,81 @@ attachEventListeners() {
             try {
                 const currentUser = window.firebaseAuth.currentUser;
                 if (currentUser) {
-                    const { collection, getDocs } = window.firebaseFunctions;
-                    const participatedRef = collection(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes');
-                    const querySnapshot = await getDocs(participatedRef);
-                    const participatedGroupBoxes = [];
+                    const { collection, getDocs, query, where } = window.firebaseFunctions;
                     
-                    querySnapshot.forEach((doc) => {
+                    // Query 1: Boxes where participants contains my uid
+                    const participatedRef = collection(window.firebaseDb, 'users', currentUser.uid, 'participated_group_boxes');
+                    const participatedSnapshot = await getDocs(participatedRef);
+                    const participatedBoxes = [];
+                    
+                    participatedSnapshot.forEach((doc) => {
                         const data = doc.data();
-                        participatedGroupBoxes.push({ 
+                        participatedBoxes.push({ 
                             id: doc.id, 
                             ...data,
                             isGroupBox: true
                         });
                     });
                     
-                    console.log(`Loaded ${participatedGroupBoxes.length} participated group boxes from Firebase`);
+                    console.log(`Loaded ${participatedBoxes.length} participated group boxes`);
+                    
+                    // Query 2: Boxes where createdBy == my uid AND organizerOnly == true
+                    const organizerRef = collection(window.firebaseDb, 'group_boxes');
+                    const organizerQuery = query(
+                        organizerRef, 
+                        where('createdBy', '==', currentUser.uid),
+                        where('organizerOnly', '==', true)
+                    );
+                    const organizerSnapshot = await getDocs(organizerQuery);
+                    const organizerBoxes = [];
+                    
+                    organizerSnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        organizerBoxes.push({
+                            id: doc.id,
+                            groupBoxId: doc.id,
+                            groupBoxName: data.lootboxData?.name || data.name,
+                            lootboxData: data.lootboxData,
+                            settings: data.settings,
+                            createdBy: data.createdBy,
+                            creatorName: data.creatorName,
+                            totalOpens: data.totalOpens || 0,
+                            uniqueUsers: data.uniqueUsers || 0,
+                            firstParticipated: data.createdAt,
+                            lastParticipated: data.createdAt,
+                            userTotalOpens: 0, // Organizer hasn't opened any
+                            userRemainingTries: 0, // Organizer has no tries
+                            isCreator: true,
+                            isOrganizerOnly: true,
+                            favorite: false,
+                            isGroupBox: true
+                        });
+                    });
+                    
+                    console.log(`Loaded ${organizerBoxes.length} organizer-only group boxes`);
+                    
+                    // Merge both result sets, avoiding duplicates
+                    const allGroupBoxes = [...participatedBoxes];
+                    organizerBoxes.forEach(organizerBox => {
+                        // Check if this box is already in participated boxes
+                        const existingIndex = allGroupBoxes.findIndex(pb => pb.groupBoxId === organizerBox.groupBoxId);
+                        if (existingIndex === -1) {
+                            allGroupBoxes.push(organizerBox);
+                        } else {
+                            // Update existing entry to ensure it has organizer flags
+                            allGroupBoxes[existingIndex] = {
+                                ...allGroupBoxes[existingIndex],
+                                ...organizerBox
+                            };
+                        }
+                    });
+                    
+                    console.log(`Total merged group boxes: ${allGroupBoxes.length}`);
                     
                     // Also save to localStorage as backup
-                    localStorage.setItem('participatedGroupBoxes', JSON.stringify(participatedGroupBoxes));
+                    localStorage.setItem('participatedGroupBoxes', JSON.stringify(allGroupBoxes));
                     
-                    return participatedGroupBoxes;
+                    return allGroupBoxes;
                 }
             } catch (error) {
                 console.error('Error loading participated group boxes from Firebase:', error);
