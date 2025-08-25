@@ -344,8 +344,15 @@ const UIRenderer = {
             historyItem.className = 'history-item';
             
             if (isGroupBox) {
-                // Check if this is a leave event
-                if (entry.action === 'leave' || entry.item === null) {
+                // Check if this is a join event
+                if (entry.action === 'join') {
+                    // Show join format: "UserName has joined the box."
+                    historyItem.innerHTML = `
+                        <span class="history-item-name join-event">${entry.userName} has joined the box.</span>
+                        <span class="history-item-time">${entry.timestamp.toLocaleTimeString()}</span>
+                    `;
+                    historyItem.classList.add('join-history-item');
+                } else if (entry.action === 'leave' || entry.item === null) {
                     // Show leave format: "UserName has left the box."
                     historyItem.innerHTML = `
                         <span class="history-item-name leave-event">${entry.userName} has left the box.</span>

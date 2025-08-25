@@ -1571,3 +1571,13 @@ body {
     color: #b91c1c;
     font-style: italic;
 }
+
+.join-history-item {
+    background: #f0f9f0;
+    border-left: 3px solid #10b981;
+}
+
+.join-event {
+    color: #059669;
+    font-style: italic;
+}

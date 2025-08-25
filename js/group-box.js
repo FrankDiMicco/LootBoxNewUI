@@ -200,6 +200,36 @@ const GroupBoxExtension = {
         app.sharingLootboxCopy = undefined;
     },
 
+    async recordJoinEvent(groupBoxId, userId) {
+        try {
+            if (!app.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                console.log('Firebase not available for recording join event');
+                return;
+            }
+
+            const { collection, addDoc } = window.firebaseFunctions;
+            const userName = userId === 'anonymous' ? 'Anonymous User' : `User ${userId.substring(0, 8)}`;
+            
+            // Create join event data
+            const joinData = {
+                userId: userId,
+                userName: userName,
+                item: null, // Special marker for non-item events
+                action: 'join',
+                timestamp: new Date(),
+                sessionId: Date.now().toString()
+            };
+            
+            // Save to the opens collection so it appears in community history
+            await addDoc(collection(window.firebaseDb, 'group_boxes', groupBoxId, 'opens'), joinData);
+            
+            console.log('Recorded join event for:', userName, 'in group box:', groupBoxId);
+            
+        } catch (error) {
+            console.error('Error recording join event:', error);
+        }
+    },
+
     async saveParticipatedGroupBox(groupBoxData) {
         try {
             if (!app.isFirebaseReady || !window.firebaseDb || !window.firebaseAuth || !window.firebaseFunctions) {
@@ -334,11 +364,15 @@ const GroupBoxExtension = {
             
             let remainingTries = groupBoxData.settings.triesPerPerson;
             let totalOpens = 0;
+            let isFirstTimeJoining = false;
             
             if (userTriesSnap.exists()) {
                 const userTriesData = userTriesSnap.data();
                 remainingTries = userTriesData.remainingTries;
                 totalOpens = userTriesData.totalOpens;
+            } else {
+                // This is the user's first time accessing this group box
+                isFirstTimeJoining = true;
             }
 
             // Create a temporary lootbox object from the group box data
@@ -390,6 +424,12 @@ const GroupBoxExtension = {
 
             // Save to Firebase and localStorage
             await app.saveParticipatedGroupBox(participatedGroupBoxData);
+            
+            // Record join event if this is the user's first time accessing this group box
+            if (isFirstTimeJoining && !organizerReadonly) {
+                await app.recordJoinEvent(groupBoxId, userId);
+            }
+            
             // Load community history for this Group Box
             await app.loadCommunityHistory(groupBoxId);
 
@@ -737,6 +777,7 @@ const GroupBoxExtension = {
                     userId: data.userId,
                     userName: data.userName,
                     item: data.item,
+                    action: data.action, // Include action field for join/leave events
                     timestamp: data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp),
                     sessionId: data.sessionId
                 });
