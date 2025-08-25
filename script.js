@@ -1203,6 +1203,10 @@ function createGroupBox() {
     app.createGroupBox();
 }
 
+function closeGroupBoxEditModal() {
+    app.closeGroupBoxEditModal();
+}
+
 // Initialize app
 window.app = new LootboxApp();
 const app = window.app;

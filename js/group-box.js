@@ -726,6 +726,151 @@ const GroupBoxExtension = {
             console.error('Error loading community history:', error);
             app.communityHistory = [];
         }
+    },
+
+    async editGroupBox(groupBoxId) {
+        const groupBox = app.participatedGroupBoxes.find(gb => gb.groupBoxId === groupBoxId);
+        if (!groupBox) {
+            app.showToast('Group Box not found');
+            return;
+        }
+        
+        // Store the current group box ID for the modal
+        app.currentEditGroupBoxId = groupBoxId;
+        
+        // Populate the modal
+        document.getElementById('editGroupBoxName').textContent = groupBox.groupBoxName || groupBox.lootboxData?.name || 'Group Box';
+        
+        // Load and display items
+        app.renderEditItemsList(groupBox);
+        
+        // Load users and tries data
+        await app.loadGroupBoxParticipants(groupBoxId);
+        
+        // Show the modal
+        document.getElementById('groupBoxEditModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+    },
+
+    closeGroupBoxEditModal() {
+        document.getElementById('groupBoxEditModal').classList.remove('show');
+        document.body.style.overflow = '';
+        app.currentEditGroupBoxId = undefined;
+    },
+
+    renderEditItemsList(groupBox) {
+        const itemsList = document.getElementById('editItemsList');
+        const items = groupBox.lootboxData?.items || [];
+        
+        if (items.length === 0) {
+            itemsList.innerHTML = '<div class="no-participants">No items found</div>';
+            return;
+        }
+        
+        itemsList.innerHTML = items.map(item => `
+            <div class="edit-item-row">
+                <div class="edit-item-name">${item.name}</div>
+                <div class="edit-item-odds">${(item.odds * 100).toFixed(1)}%</div>
+            </div>
+        `).join('');
+    },
+
+    async loadGroupBoxParticipants(groupBoxId) {
+        try {
+            if (!app.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                document.getElementById('editUsersList').innerHTML = '<div class="no-participants">Unable to load participants</div>';
+                return;
+            }
+
+            const { collection, getDocs } = window.firebaseFunctions;
+            
+            // Get all user tries for this group box
+            const userTriesRef = collection(window.firebaseDb, 'group_boxes', groupBoxId, 'user_tries');
+            const userTriesSnapshot = await getDocs(userTriesRef);
+            
+            const participants = [];
+            userTriesSnapshot.forEach((doc) => {
+                const data = doc.data();
+                participants.push({
+                    userId: doc.id,
+                    userName: doc.id === 'anonymous' ? 'Anonymous User' : `User ${doc.id.substring(0, 8)}`,
+                    totalOpens: data.totalOpens || 0,
+                    remainingTries: data.remainingTries || 0,
+                    lastOpen: data.lastOpen
+                });
+            });
+            
+            app.renderEditUsersList(participants, groupBoxId);
+            
+        } catch (error) {
+            console.error('Error loading group box participants:', error);
+            document.getElementById('editUsersList').innerHTML = '<div class="no-participants">Error loading participants</div>';
+        }
+    },
+
+    renderEditUsersList(participants, groupBoxId) {
+        const usersList = document.getElementById('editUsersList');
+        
+        if (participants.length === 0) {
+            usersList.innerHTML = '<div class="no-participants">No participants yet</div>';
+            return;
+        }
+        
+        usersList.innerHTML = participants.map(participant => `
+            <div class="edit-user-row">
+                <div class="edit-user-info">
+                    <div class="edit-user-name">${participant.userName}</div>
+                    <div class="edit-user-stats">
+                        <span>Opens: ${participant.totalOpens}</span>
+                        <span>Last: ${participant.lastOpen ? new Date(participant.lastOpen.toDate ? participant.lastOpen.toDate() : participant.lastOpen).toLocaleDateString() : 'Never'}</span>
+                    </div>
+                </div>
+                <div class="edit-user-actions">
+                    <div class="tries-display">${participant.remainingTries} left</div>
+                    <button class="grant-tries-btn" onclick="app.grantExtraTries('${groupBoxId}', '${participant.userId}')">
+                        +1 Try
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async grantExtraTries(groupBoxId, userId) {
+        try {
+            if (!app.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                app.showToast('Firebase not available');
+                return;
+            }
+
+            const { doc, getDoc, updateDoc } = window.firebaseFunctions;
+            
+            // Get current user tries data
+            const userTriesRef = doc(window.firebaseDb, 'group_boxes', groupBoxId, 'user_tries', userId);
+            const userTriesSnap = await getDoc(userTriesRef);
+            
+            if (!userTriesSnap.exists()) {
+                app.showToast('User not found');
+                return;
+            }
+            
+            const currentData = userTriesSnap.data();
+            const newRemainingTries = (currentData.remainingTries || 0) + 1;
+            
+            // Update the tries count
+            await updateDoc(userTriesRef, {
+                remainingTries: newRemainingTries
+            });
+            
+            // Refresh the participants list
+            await app.loadGroupBoxParticipants(groupBoxId);
+            
+            const userName = userId === 'anonymous' ? 'Anonymous User' : `User ${userId.substring(0, 8)}`;
+            app.showToast(`Granted +1 try to ${userName}`);
+            
+        } catch (error) {
+            console.error('Error granting extra tries:', error);
+            app.showToast('Error granting tries');
+        }
     }
 };
 

@@ -247,6 +247,38 @@
         </div>
     </div>
 
+    <!-- Group Box Edit Modal -->
+    <div id="groupBoxEditModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Group Box</h3>
+                <button class="close-btn" onclick="closeGroupBoxEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <h4 id="editGroupBoxName">Group Box Name</h4>
+                </div>
+
+                <div class="edit-section">
+                    <h4>Items & Odds</h4>
+                    <div id="editItemsList" class="edit-items-list">
+                        <!-- Items will be populated here -->
+                    </div>
+                </div>
+
+                <div class="edit-section">
+                    <h4>Participants</h4>
+                    <div id="editUsersList" class="edit-users-list">
+                        <!-- Users will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeGroupBoxEditModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Message -->
     <div id="successMessage" class="success-message">
         <div class="success-content">
