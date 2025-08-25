@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lootbox Creator 1.1</title>
+    <title>Lootbox Creator 1.2</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -260,9 +260,16 @@
                 </div>
 
                 <div class="edit-section">
-                    <h4>Items & Odds</h4>
+                    <div class="edit-section-header">
+                        <h4>Items & Odds</h4>
+                        <button class="add-edit-item-btn" onclick="app.addEditItem()" type="button">+ Add Item</button>
+                    </div>
                     <div id="editItemsList" class="edit-items-list">
                         <!-- Items will be populated here -->
+                    </div>
+                    <div class="edit-odds-total">
+                        <button class="even-odds-btn" onclick="app.evenlyDistributeEditOdds()" type="button" title="Evenly distribute odds across all items">Equalize</button>
+                        <span>Total odds: <span id="editTotalOdds">0.000</span></span>
                     </div>
                 </div>
 
@@ -274,7 +281,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeGroupBoxEditModal()">Close</button>
+                <button class="btn btn-secondary" onclick="closeGroupBoxEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="app.saveGroupBoxChanges()" type="button">Save Changes</button>
             </div>
         </div>
     </div>

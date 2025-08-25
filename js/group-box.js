@@ -763,17 +763,105 @@ const GroupBoxExtension = {
         const itemsList = document.getElementById('editItemsList');
         const items = groupBox.lootboxData?.items || [];
         
+        // Store items for editing
+        app.currentEditItems = items.map(item => ({ ...item })); // Deep copy
+        
         if (items.length === 0) {
             itemsList.innerHTML = '<div class="no-participants">No items found</div>';
+            app.updateEditTotalOdds();
             return;
         }
         
-        itemsList.innerHTML = items.map(item => `
+        app.renderEditItemsHTML();
+        app.updateEditTotalOdds();
+    },
+
+    renderEditItemsHTML() {
+        const itemsList = document.getElementById('editItemsList');
+        const items = app.currentEditItems || [];
+        
+        if (items.length === 0) {
+            itemsList.innerHTML = '<div class="no-participants">No items found - click "Add Item" to get started</div>';
+            return;
+        }
+        
+        itemsList.innerHTML = items.map((item, index) => `
             <div class="edit-item-row">
-                <div class="edit-item-name">${item.name}</div>
-                <div class="edit-item-odds">${(item.odds * 100).toFixed(1)}%</div>
+                <input type="text" class="edit-item-name-input" value="${item.name}" 
+                       onchange="app.updateEditItemName(${index}, this.value)" placeholder="Item name">
+                <input type="number" class="edit-item-odds-input" value="${(item.odds * 100).toFixed(1)}" 
+                       onchange="app.updateEditItemOdds(${index}, this.value)" 
+                       placeholder="%" step="0.1" min="0" max="100">
+                <div class="edit-item-actions">
+                    <button class="delete-item-btn" onclick="app.deleteEditItem(${index})" type="button">×</button>
+                </div>
             </div>
         `).join('');
+    },
+
+    addEditItem() {
+        if (!app.currentEditItems) {
+            app.currentEditItems = [];
+        }
+        
+        app.currentEditItems.push({
+            name: 'New Item',
+            odds: 0.1 // Default to 10%
+        });
+        
+        app.renderEditItemsHTML();
+        app.updateEditTotalOdds();
+    },
+
+    deleteEditItem(index) {
+        if (!app.currentEditItems || index < 0 || index >= app.currentEditItems.length) return;
+        
+        app.currentEditItems.splice(index, 1);
+        app.renderEditItemsHTML();
+        app.updateEditTotalOdds();
+    },
+
+    updateEditItemName(index, newName) {
+        if (!app.currentEditItems || index < 0 || index >= app.currentEditItems.length) return;
+        
+        app.currentEditItems[index].name = newName.trim() || `Item ${index + 1}`;
+    },
+
+    updateEditItemOdds(index, newOdds) {
+        if (!app.currentEditItems || index < 0 || index >= app.currentEditItems.length) return;
+        
+        const odds = Math.max(0, Math.min(100, parseFloat(newOdds) || 0)) / 100;
+        app.currentEditItems[index].odds = odds;
+        app.updateEditTotalOdds();
+    },
+
+    updateEditTotalOdds() {
+        const totalOddsSpan = document.getElementById('editTotalOdds');
+        if (!totalOddsSpan || !app.currentEditItems) return;
+        
+        const totalOdds = app.currentEditItems.reduce((sum, item) => sum + (item.odds || 0), 0);
+        totalOddsSpan.textContent = totalOdds.toFixed(3);
+        
+        // Visual feedback for total odds
+        if (Math.abs(totalOdds - 1.0) < 0.001) {
+            totalOddsSpan.style.color = '#059669'; // Green for exactly 1.0
+        } else if (totalOdds > 1.0) {
+            totalOddsSpan.style.color = '#dc2626'; // Red for over 1.0
+        } else {
+            totalOddsSpan.style.color = '#f59e0b'; // Orange for under 1.0
+        }
+    },
+
+    evenlyDistributeEditOdds() {
+        if (!app.currentEditItems || app.currentEditItems.length === 0) return;
+        
+        const evenOdds = 1.0 / app.currentEditItems.length;
+        app.currentEditItems.forEach(item => {
+            item.odds = evenOdds;
+        });
+        
+        app.renderEditItemsHTML();
+        app.updateEditTotalOdds();
     },
 
     async loadGroupBoxParticipants(groupBoxId) {
@@ -871,6 +959,68 @@ const GroupBoxExtension = {
         } catch (error) {
             console.error('Error granting extra tries:', error);
             app.showToast('Error granting tries');
+        }
+    },
+
+    async saveGroupBoxChanges() {
+        const groupBoxId = app.currentEditGroupBoxId;
+        if (!groupBoxId || !app.currentEditItems) {
+            app.showToast('No changes to save');
+            return;
+        }
+        
+        // Validate items
+        if (app.currentEditItems.length === 0) {
+            app.showToast('Group Box must have at least one item');
+            return;
+        }
+        
+        // Validate all items have names
+        const invalidItems = app.currentEditItems.filter(item => !item.name || item.name.trim() === '');
+        if (invalidItems.length > 0) {
+            app.showToast('All items must have names');
+            return;
+        }
+        
+        // Validate odds
+        const totalOdds = app.currentEditItems.reduce((sum, item) => sum + (item.odds || 0), 0);
+        if (totalOdds <= 0) {
+            app.showToast('Items must have valid odds greater than 0');
+            return;
+        }
+        
+        try {
+            if (!app.isFirebaseReady || !window.firebaseDb || !window.firebaseFunctions) {
+                app.showToast('Firebase not available');
+                return;
+            }
+
+            const { doc, updateDoc } = window.firebaseFunctions;
+            
+            // Update the Group Box document in Firebase
+            const groupBoxRef = doc(window.firebaseDb, 'group_boxes', groupBoxId);
+            await updateDoc(groupBoxRef, {
+                'lootboxData.items': app.currentEditItems
+            });
+            
+            // Update local participated group box data
+            const groupBoxIndex = app.participatedGroupBoxes.findIndex(gb => gb.groupBoxId === groupBoxId);
+            if (groupBoxIndex >= 0) {
+                app.participatedGroupBoxes[groupBoxIndex].lootboxData.items = [...app.currentEditItems];
+                
+                // Update localStorage backup
+                localStorage.setItem('participatedGroupBoxes', JSON.stringify(app.participatedGroupBoxes));
+            }
+            
+            app.showToast('Group Box updated successfully!');
+            app.closeGroupBoxEditModal();
+            
+            // Refresh the lootboxes view to show changes
+            app.renderLootboxes();
+            
+        } catch (error) {
+            console.error('Error saving Group Box changes:', error);
+            app.showToast('Error saving changes');
         }
     }
 };

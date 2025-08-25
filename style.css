@@ -1332,6 +1332,30 @@ body {
     font-weight: 600;
 }
 
+.edit-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.add-edit-item-btn {
+    background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-edit-item-btn:hover {
+    background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+    transform: translateY(-1px);
+}
+
 .edit-items-list {
     display: flex;
     flex-direction: column;
@@ -1341,7 +1365,7 @@ body {
 .edit-item-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     padding: 12px 16px;
     background: white;
     border-radius: 8px;
@@ -1355,6 +1379,22 @@ body {
     flex: 1;
 }
 
+.edit-item-name-input {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.edit-item-name-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 .edit-item-odds {
     font-size: 14px;
     color: #64748b;
@@ -1362,6 +1402,79 @@ body {
     padding: 4px 12px;
     border-radius: 20px;
     font-weight: 500;
+}
+
+.edit-item-odds-input {
+    width: 80px;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.edit-item-odds-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Hide spinner arrows on odds input */
+.edit-item-odds-input::-webkit-outer-spin-button,
+.edit-item-odds-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.edit-item-odds-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.edit-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.delete-item-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-item-btn:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+}
+
+.edit-odds-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.edit-odds-total span {
+    font-weight: 500;
+    color: #475569;
+}
+
+#editTotalOdds {
+    font-weight: 700;
+    color: #1e293b;
 }
 
 .edit-users-list {
